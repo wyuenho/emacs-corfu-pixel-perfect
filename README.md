@@ -205,7 +205,7 @@ performance reasons :( Emacs is lovely like that.
 I'll document in detail all of these relatively minor issues in due course.
 
 
-### Performance
+## Performance
 
 A benchmark using a rather extreme `corfu-count` of 100 and 100 completion
 strings with 100 glyphs is run on a MacBook Pro M1 Pro from 2021 720 times.
