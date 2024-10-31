@@ -23,8 +23,8 @@ more than one kind of monospaced fonts, or a different width or slant variant of
 the same monospaced font, or occasionally commit the sin of using a variable
 font for the less important things such as annotation. Unfortunately, even in
 2024, these font choices are still impossible to use in many Emacs packages,
-because they still carry the baggage from treating every glyph as having the
-exact same size, one such example is `corfu`.
+because they still treat every glyph as having the exact same size, one such
+example is `corfu`.
 
 Would you rather have this?
 
