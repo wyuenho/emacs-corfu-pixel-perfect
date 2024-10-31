@@ -83,9 +83,9 @@ indicator."
 
   ;; If the buffer had never been shown before, the margin text will not be
   ;; visible until the frame is visible, so we need to force the window to
-  ;; update again. In addition, if the buffer had been shown before, but has is
-  ;; margin or fringe widths updated, we'll need to set the window again to
-  ;; trigger the update.
+  ;; update again. In addition, if the buffer had been shown before, but has its
+  ;; margin or fringe widths updated, we'll need to set the window buffer again
+  ;; to trigger the update.
   (let* ((root-window (frame-root-window frame))
          (buffer (window-buffer root-window)))
     (with-current-buffer buffer
