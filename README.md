@@ -61,20 +61,6 @@ favorite auto-completion popup.
 |![Prefix Before](screenshots/prefix-before.png)|![Prefix After](screenshots/prefix-after.png)|
 
 
-### Misalignment of right margin and missing scroll bar due to faces using different widths
-
-| corfu | corfu-pixel-perfect |
-|-------|---------------------|
-|![Different Face Width Before](screenshots/diff-width-before.png)|![Different Face Width After](screenshots/diff-width-after.png)|
-
-
-### Misalignment of right margin and missing scroll bar due to faces using different slants
-
-| corfu | corfu-pixel-perfect |
-|-------|---------------------|
-|![Different Face Slant Before](screenshots/diff-slant-before.png)|![Different Face Slant After](screenshots/diff-slant-after.png)
-
-
 ### Variable fonts causes misalignment of the annotations and the scroll bar
 
 | corfu | corfu-pixel-perfect |
@@ -87,6 +73,20 @@ favorite auto-completion popup.
 | corfu | corfu-pixel-perfect |
 |-------|---------------------|
 |![Emoji Before](screenshots/emoji-before.png)|![Emoji After](screenshots/emoji-after.png) [^1]|
+
+
+### Misalignment of right margin and missing scroll bar due to faces using different widths
+
+| corfu | corfu-pixel-perfect |
+|-------|---------------------|
+|![Different Face Width Before](screenshots/diff-width-before.png)|![Different Face Width After](screenshots/diff-width-after.png)|
+
+
+### Misalignment of right margin and missing scroll bar due to faces using different slants
+
+| corfu | corfu-pixel-perfect |
+|-------|---------------------|
+|![Different Face Slant Before](screenshots/diff-slant-before.png)|![Different Face Slant After](screenshots/diff-slant-after.png)
 
 
 [^1]: The height is still misaligned due to a similar treatment as default font width to line height, this will probably be addressed at a later time.
