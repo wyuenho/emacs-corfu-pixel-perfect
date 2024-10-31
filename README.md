@@ -175,7 +175,7 @@ widths to set are, so you end up constantly messing with these width
 variables. This situation is exacerbated by the fact `corfu` does not remember
 the size after resizing the popup with a mouse.
 
-Their must be some simple clever math you can do to guess a sensible static
+There must be some simple clever math you can do to guess a sensible static
 width depending on the major mode and past completion invocations.
 
 Or perhaps, just simply remember the size of the popup after the user has
