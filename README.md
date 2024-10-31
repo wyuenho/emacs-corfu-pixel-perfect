@@ -238,10 +238,10 @@ You can eval this [benchmark](benchmark/benchmark.el) to see for yourself.
 For a long time, Emacs has had pixel-wise string alignment facilities in the
 form of display text properties and a very cumbersome function called
 `window-text-pixel-size`. What has been missing was, a performant way to measure
-text sizes in pixel due to `window-text-pixel-size` requiring Elisp programs to
-commandeer a window and create a temporary buffer for every measurement. This
-has changed with the introduction of a `buffer-text-pixel-size` C function in
-Emacs 29, and a new `string-pixel-width` Elisp function that uses it.
+text sizes in pixels due to `window-text-pixel-size`'s requirement for a window
+and a temporary buffer for every measurement. The situation has improved a bit
+with the introduction of a `buffer-text-pixel-size` C function in Emacs 29, and
+a new `string-pixel-width` Elisp function that uses it.
 
 In addition, Emacs 29 now offers a function called `string-glyph-split` that
 will respect text properties, faces and composed characters such as emojis, so
@@ -251,17 +251,18 @@ we choose to.
 With these new capabilities, Elisp programs can finally measure glyph widths in
 pixels with acceptable performance in most circumstances.
 
-While this package currently does not use `string-glyph-split`, as it opted to
-avoid programmatic truncation in favor of clipping by the window system for
+While this package currently does not use `string-glyph-split`, as it opts out
+of programmatic truncation in favor of clipping by the window system for
 performance reasons, there is enough performance headroom in this package to
 offer opt-in features such as column-wise truncation and fancier column
 alignment and formatting. These features will be progressively rolled out in the
 future.
 
 In conclusion, by employing `string-pixel-width` in combination with `corfu`'s
-excellent extension points via `cl-defmethod`, add a couple of `advice-add`, and
-redoing some of the width calculations, while avoiding relative alignment and
-programmatic truncation, the result of this package is achieved.
+excellent extension points via `cl-defmethod`, sprinkle in a couple of
+`advice-add`, refactoring some code in order to redo some of the width
+calculations while avoiding relative alignment and programmatic truncation, the
+result of this package is achieved.
 
 
 ## FAQ
