@@ -258,8 +258,8 @@ future.
 
 In conclusion, by employing `string-pixel-width` in combination with `corfu`'s
 excellent extension points via `cl-defmethod`, add a couple of `advice-add`, and
-redoing some of the width calculations, while avoiding relative alignment, the
-results of this package is achieved.
+redoing some of the width calculations, while avoiding relative alignment and
+programmatic truncation, the result of this package is achieved.
 
 
 ## FAQ
