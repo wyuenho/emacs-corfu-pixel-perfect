@@ -105,7 +105,8 @@ happens to land around where the candidates end.
 |-------|---------------------|
 |![No ellipsis](screenshots/no-ellipsis.png)|![With ellipsis](screenshots/ellipsis.png)
 
-Just set `corfu-pixel-perfect-ellipsis` to `t` to enable the new behavior.
+Just set `corfu-pixel-perfect-ellipsis` to `t` to enable the new behavior with
+the same performance.
 
 As a sidenote, this option will necessitate moving the scroll bar to the margin,
 which has a minimum width of 1 column. This is a tradeoff between usability,
