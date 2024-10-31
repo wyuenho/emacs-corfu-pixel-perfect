@@ -30,9 +30,9 @@ Would you rather have this?
 ![corfu](screenshots/corfu.png)
 
 
-Or something like VSCode's Intellisense?
+Or something like Intellij's?
 
-![VSCode Intellisense](screenshots/vscode-intellisense.png)
+![Intellij](screenshots/intellij.png)
 
 
 With `corfu-pixel-perfect`, you can finally have perfect pixel alignment in your
