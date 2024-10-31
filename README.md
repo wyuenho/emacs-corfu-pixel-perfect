@@ -187,7 +187,7 @@ Have you noticed the completion popup does not respond to mouse scroll or
 dragging on the "scroll bar"? Yeah, the sacrifaces we made for sticking with
 Emacs sometimes border on the absurd.
 
-However, this is perhaps a bluesky project in its own right, largely due to
+However, this is perhaps a blue sky project in its own right, largely due to
 performance reasons :( Emacs is lovely like that.
 
 
