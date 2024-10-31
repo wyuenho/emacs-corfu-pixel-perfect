@@ -6,7 +6,7 @@
 ;; Created: 2024-10-30
 ;; Version: 0.1
 ;; Package-Requires: ((emacs "29.1") (corfu "1.5"))
-;; URL: https://github.com/wyuenho/corfu-pixel-perfect
+;; URL: https://github.com/wyuenho/emacs-corfu-pixel-perfect
 ;; Keywords: abbrev, convenience, matching, completion, text
 
 ;; This file is not part of GNU Emacs.
