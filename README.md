@@ -309,8 +309,8 @@ issues.
 
 This is to honor `corfu` author's request to not file many issues based on a
 private conversation. Regardless, I think you'll see a pattern on how he deals
-with issues just by glancing over his repos. I do not intend to cause any
-additional stress for him.
+with issues by glancing over his repos. I do not intend to cause any additional
+stress for him.
 
 
 ### Will this be ported to Company?
