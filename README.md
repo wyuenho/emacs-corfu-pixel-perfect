@@ -21,7 +21,7 @@ I very much like monospaced fonts, in fact I like them so much, I'd like to use
 more than one kind of monospaced fonts, or a different width or slant variant of
 the same monospaced font, or occasionally commit the sin of using a variable
 font for the less important things such as annotation. Unfortunately, even in
-2024, a lot of Emacs packages makes these font choices impossible to use,
+2024, these font choices are still impossible to use in many Emacs packages,
 because they still carry the baggage from treating every glyph as having the
 exact same width and height, one such example is `corfu`.
 
@@ -56,36 +56,36 @@ favorite auto-completion popup.
 
 ### Prefix icon misalignment due to the icons having different widths than the default face font
 
-| Before | After |
-|--------|-------|
+| corfu | corfu-pixel-perfect |
+|-------|---------------------|
 |![Prefix Before](screenshots/prefix-before.png)|![Prefix After](screenshots/prefix-after.png)|
 
 
 ### Misalignment of right margin and missing scroll bar due to faces using different widths
 
-| Before | After |
-|--------|-------|
+| corfu | corfu-pixel-perfect |
+|-------|---------------------|
 |![Different Face Width Before](screenshots/diff-width-before.png)|![Different Face Width After](screenshots/diff-width-after.png)|
 
 
 ### Misalignment of right margin and missing scroll bar due to faces using different slants
 
-| Before | After |
-|--------|-------|
+| corfu | corfu-pixel-perfect |
+|-------|---------------------|
 |![Different Face Slant Before](screenshots/diff-slant-before.png)|![Different Face Slant After](screenshots/diff-slant-after.png)
 
 
 ### Variable fonts causes misalignment of the annotations and the scroll bar
 
-| Before | After |
-|--------|-------|
+| corfu | corfu-pixel-perfect |
+|-------|---------------------|
 |![Suffix Before](screenshots/suffix-before.png)|![Suffix After](screenshots/suffix-after.png)|
 
 
 ### Emoji causing misalignment due to font width differences
 
-| Before | After |
-|--------|-------|
+| corfu | corfu-pixel-perfect |
+|-------|---------------------|
 |![Emoji Before](screenshots/emoji-before.png)|![Emoji After](screenshots/emoji-after.png) [^1]|
 
 
@@ -141,7 +141,7 @@ tailored to uniform glyph width situations while respecting the API signatures
 and the constraints upstream, stay tuned.
 
 
-### Column-wise maximum width
+### Column-wise truncation
 
 The text inside the completion popup is basically a table of 3 columns - prefix,
 candidate, and annotations. Given the individual cell contents can differ in
@@ -172,8 +172,8 @@ most cases, the popup width flickers wildly between 85 columns, depending on
 which programming languages you work with. However, since different programming
 languages differ in verbosity, you don't really know what the best widths to set
 are, so you end up constantly messing with these width variables. This situation
-is exacerbated by the fact `corfu` does not remember the size when the user has
-resized the popup with a mouse.
+is exacerbated by the fact `corfu` does not remember the size after resizing the
+popup with a mouse.
 
 Their must be some simple clever math you can do to guess a sensible static
 width depending on the major mode and past completion invocations.
@@ -208,8 +208,8 @@ I'll document in detail all of these relatively minor issues in due course.
 
 ### Performance
 
-A benchmark using a rather extreme `corfu-count` of 100 and completion strings
-with 100 glyphs is run on a MacBook Pro M1 Pro from 2021.
+A benchmark using a rather extreme `corfu-count` of 100 and 100 completion
+strings with 100 glyphs is run on a MacBook Pro M1 Pro from 2021 720 times.
 
 With vanilla `corfu`, it finishes in around 6 to 7.5s, equivalent to around 100
 FPS. `corfu-pixel-perfect`finishes in 8.4 to 8.8s, equivalent to around 80
@@ -225,9 +225,9 @@ variability and thus unpredictability in performance, whereas
 In reality, with a reasonable `corfu-count` such as 20, both implementations
 easily exceed 300 frames per second. If you leave `corfu-count` to the default
 of 10, you need to be able to perceive images 6x faster than your latest
-flagship phone can shoot a show motion video to feel any difference. If you
-experience any slowdown, the culprit is far more likely to be your
-`completion-at-point` function.
+flagship phone can shoot a show motion video to feel any difference. Therefore,
+for any perceived slowdown, the culprit is far more likely to be your
+`completion-at-point` function. If not, please do let me know.
 
 You can eval this [benchmark](benchmark/benchmark.el) to see for yourself.
 
@@ -239,7 +239,7 @@ form of display text properties and a very cumbersome function called
 `window-text-pixel-size`. What has been missing was, a performant way to measure
 text sizes in pixel due to `window-text-pixel-size` requiring Elisp programs to
 commandeer a window and create a temporary buffer for every measurement. This
-has changed with the introduction of the `buffer-text-pixel-size` C function in
+has changed with the introduction of a `buffer-text-pixel-size` C function in
 Emacs 29, and a new `string-pixel-width` Elisp function that uses it.
 
 In addition, Emacs 29 now offers a function called `string-glyph-split` that
@@ -251,14 +251,14 @@ With these new capabilities, Elisp programs can finally measure glyph widths in
 pixels with acceptable performance in most circumstances.
 
 While this package currently does not use `string-glyph-split`, as it opted to
-avoid programmatic truncation in favor of simply clipping by the window system
-for performance reasons, there is enough performance headroom in this package to
+avoid programmatic truncation in favor of clipping by the window system for
+performance reasons, there is enough performance headroom in this package to
 offer opt-in features such as column-wise truncation and fancier column
 alignment and formatting. These features will be progressively rolled out in the
 future.
 
 In conclusion, by employing `string-pixel-width` in combination with `corfu`'s
-excellent extension points via`cl-defmethod`, and a couple of `advice-add`, the
+excellent extension points via `cl-defmethod`, and a couple of `advice-add`, the
 results of this package is achieved.
 
 
@@ -273,15 +273,15 @@ combinations of 1) perceived performance degradation, of which I've proven to be
 inconsequential above. 2) incompatibility with Emacs <= 28, of which I dismiss
 as irrelevant because the original PR could easily be molded into an extension
 that requires Emacs >= 29, as demonstrated here, and most centrally, 3) around a
-user/collaborator claiming the following as a feature that I regress on, despite
+collaborator claiming the following as a feature that I regressed on, despite
 the corfu author acknowledging this "feature" was never intended, and both
 agreeing this "feature" was not ideal, but still insisting on "non-regression".
 
 ![Airquote Feature](screenshots/airquote-feature.png) [^2]
 
 
-There are a number of other reasons for the closing of the PR I'm sure, but they
-are not about techincal merit, of which I'll stick to here.
+There are a number of other reasons for the rejection of the change I'm sure,
+but they are not about techincal merit, of which I'll stick to here.
 
 In short, I regret not publishing all these improvements as a separate package
 first in order to gather some community feedback before attempting to land
@@ -320,7 +320,7 @@ accumulated too much code bloat over the years for this to be a worthwhile
 adventure for me. However, an intrepid explorer such as you may find the ideas
 in this package promising. If that's the case, plese feel free to take the ideas
 and/or code to do whatever you want in whatever package, provided you adhere to
-the GPL license.
+the GPLv3 license.
 
 
 ### Will this be published on a package archive?
