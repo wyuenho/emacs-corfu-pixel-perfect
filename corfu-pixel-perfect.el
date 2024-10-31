@@ -154,8 +154,8 @@ terminal."
 
 (defun corfu-pixel-perfect--candidates-popup (pos)
   "Show candidates popup at POS."
-  (corfu--compute-scroll)
   (when (> corfu--total 0)
+    (corfu--compute-scroll)
     (pcase-let* ((last (min (+ corfu--scroll corfu-count) corfu--total))
                  (bar (ceiling (* corfu-count corfu-count) corfu--total))
                  (lo (min (- corfu-count bar 1) (floor (* corfu-count corfu--scroll) corfu--total)))
