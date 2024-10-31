@@ -153,8 +153,8 @@ mode. The signature of a function is often just as, if not more important than
 the name. If a few overly long functions such as
 `myComponetSuperSecret__DangerouslySetInnerHTML` causes the candidate column to
 suddenly increase in width greatly, the function signatures may overflow behind
-the window due exceeding `corfu-max-width`. It is perhaps preferrable to first
-truncate the candidates in this situation.
+the window due to `corfu-max-width` being exceeded. It is perhaps preferrable to
+first truncate the candidates in this situation.
 
 
 ### Truncation indicator other than a column of ellipsis
