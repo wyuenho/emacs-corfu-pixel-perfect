@@ -176,10 +176,9 @@ variables. This situation is exacerbated by the fact `corfu` does not remember
 the size after resizing the popup with a mouse.
 
 There must be some simple clever math you can do to guess a sensible static
-width depending on the major mode and past completion invocations.
-
-Or perhaps, just simply remember the size of the popup after the user has
-resized it with a mouse.
+width depending on the major mode and past completion invocations. Or perhaps,
+just simply remembering the size of the popup after the user has resized it with
+a mouse.
 
 
 ### Real scrollable popup?
