@@ -12,7 +12,8 @@ itself. However, we are also Emacs users, and historically the Emacs ecosystem
 has a tendency to use one single monospaced font for both the UI and the text
 documents for no better reason than "I occasionally use Emacs in the terminal",
 or "that's something every package forces on me". While I can't possibly comment
-on your life choices, I claim it need not be a binary choice since Emacs 29.
+on your life choices, I claim your font choice need not be an all-or-nothing
+binary choice (since Emacs 29).
 
 But why would you like to use anything other than a monospaced font? I hear you
 ask.
@@ -23,7 +24,7 @@ the same monospaced font, or occasionally commit the sin of using a variable
 font for the less important things such as annotation. Unfortunately, even in
 2024, these font choices are still impossible to use in many Emacs packages,
 because they still carry the baggage from treating every glyph as having the
-exact same width and height, one such example is `corfu`.
+exact same size, one such example is `corfu`.
 
 Would you rather have this?
 
