@@ -258,7 +258,8 @@ alignment and formatting. These features will be progressively rolled out in the
 future.
 
 In conclusion, by employing `string-pixel-width` in combination with `corfu`'s
-excellent extension points via `cl-defmethod`, and a couple of `advice-add`, the
+excellent extension points via `cl-defmethod`, add a couple of `advice-add`, and
+redoing some of the width calculations, while avoiding relative alignment, the
 results of this package is achieved.
 
 
