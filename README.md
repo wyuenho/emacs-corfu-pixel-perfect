@@ -168,12 +168,12 @@ know if you have some idea on how best to present this in the popup.
 
 Currently `corfu-min-width` defaults to 15, which is too low for most cases, and
 `corfu-max-width` defaults to 100, which is too large for most cases. So, for
-most cases, the popup width flickers wildly between 85 columns, depending on
-which programming languages you work with. However, since different programming
-languages differ in verbosity, you don't really know what the best widths to set
-are, so you end up constantly messing with these width variables. This situation
-is exacerbated by the fact `corfu` does not remember the size after resizing the
-popup with a mouse.
+most cases, the popup width flickers wildly between 85 columns as you scroll,
+depending on which programming languages you work with. However, since different
+programming languages differ in verbosity, you don't really know what the best
+widths to set are, so you end up constantly messing with these width
+variables. This situation is exacerbated by the fact `corfu` does not remember
+the size after resizing the popup with a mouse.
 
 Their must be some simple clever math you can do to guess a sensible static
 width depending on the major mode and past completion invocations.
