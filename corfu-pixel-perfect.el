@@ -70,11 +70,6 @@ indicator."
 
 (defun corfu-pixel-perfect--make-frame-advice (frame)
   "Ensure buffer local variables take effect in FRAME."
-  ;; If the buffer had never been shown before, the margin text will not be
-  ;; visible until the frame is visible, so we need to force the window to
-  ;; update again. In addition, if the buffer had been shown before, but has is
-  ;; margin or fringe widths updated, we'll need to set the window again to
-  ;; trigger the update.
   (let ((nsg (frame-parameter frame 'no-special-glyphs)))
     ;; so we don't reset frame params unnecessarily, which can be expensive
     (cond ((and (not corfu-pixel-perfect-ellipsis) nsg)
@@ -86,6 +81,11 @@ indicator."
           ((and (not corfu-pixel-perfect-ellipsis) (not nsg))
            (set-frame-parameter frame 'no-special-glyphs t))))
 
+  ;; If the buffer had never been shown before, the margin text will not be
+  ;; visible until the frame is visible, so we need to force the window to
+  ;; update again. In addition, if the buffer had been shown before, but has is
+  ;; margin or fringe widths updated, we'll need to set the window again to
+  ;; trigger the update.
   (let* ((root-window (frame-root-window frame))
          (buffer (window-buffer root-window)))
     (with-current-buffer buffer
