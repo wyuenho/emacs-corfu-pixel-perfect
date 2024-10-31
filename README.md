@@ -294,12 +294,12 @@ publishing this new package.
   right-align-at-best-effort variant for now. The reason is downstream Elisp
   programs rely on the output of `corfu--format-candidate`. It's easy to pad and
   format 3 columns into a list of strings in imaginative ways, it's much harder
-  to parse and reformat irregularly formatted strings without loads of extra
-  metadata hacked into the text properties, or worse, using a parser. The design
-  space for completion popup column alignment is actually quite large. I may
-  revisit some options to chain formatters after looking at how other IDEs
-  design their completion popups. For now, I think keeping the formatted output
-  simple and predictable is the best course of action as it keeps the API clean.
+  to parse and reformat irregularly formatted strings without abusing text
+  properties, or worse, using a parser. The design space for completion popup
+  column alignment is actually quite large. I may revisit some options to chain
+  formatters after looking at how other IDEs design their completion popups. For
+  now, I think keeping the formatted output simple and predictable is the best
+  course of action as it keeps the API clean.
 
 
 ### Were there any issues filed on `corfu` regarding the issued found?
@@ -342,11 +342,11 @@ please do not file a bug against the Haiku, Andriod or MS-DOS port.
 
 ### Will this package break when `corfu` changes its API?
 
-`corfu`'s API has been stable for sometime, while I cannot control what develops
-over there, I can promise as soon as something breaks, I'll fix it. A usable,
-performant and correct auto-completion UI is very important to me as I use it
-every day, maintaining stability in this package is a priority for me by
-default.
+`corfu`'s API has been relatively stable for sometime, while I cannot control
+what develops over there, I can promise as soon as something breaks, I'll fix
+it. A usable, performant and correct auto-completion UI is very important to me
+as I use it every day, maintaining stability in this package is a priority for
+me by default.
 
 
 ### Is it slow?
