@@ -210,23 +210,24 @@ A scroll bar is displayed from LO to LO+BAR."
         (with-silent-modifications
           (erase-buffer)
 
+          (if (< width content-width)
+              (progn
+                (setq-local buffer-display-table corfu-pixel-perfect--display-table))
+            (setq-local buffer-display-table nil))
+
           ;; adjusts margin and fringe when a scroll bar is needed
           (if lo
-              (progn
-                (setq-local fringe-indicator-alist nil)
-                (if corfu-pixel-perfect-ellipsis
-                    (setq-local right-margin-width 1
-                                right-fringe-width
-                                (alist-get 'right-fringe-width corfu--buffer-parameters))
-                  (setq-local right-fringe-width bw
-                              right-margin-width
-                              (alist-get 'right-margin-width corfu--buffer-parameters))))
+              (if corfu-pixel-perfect-ellipsis
+                  (setq-local right-margin-width 1
+                              right-fringe-width
+                              (alist-get 'right-fringe-width corfu--buffer-parameters))
+                (setq-local right-fringe-width bw
+                            right-margin-width
+                            (alist-get 'right-margin-width corfu--buffer-parameters)))
             (setq-local right-margin-width
                         (alist-get 'right-margin-width corfu--buffer-parameters)
                         right-fringe-width
-                        (alist-get 'right-fringe-width corfu--buffer-parameters)
-                        fringe-indicator-alist
-                        (alist-get 'fringe-indicator-alist corfu--buffer-parameters)))
+                        (alist-get 'right-fringe-width corfu--buffer-parameters)))
 
           (insert (string-join
                    (cl-loop for i from 0 to (1- (length lines))
