@@ -60,6 +60,23 @@ indicator."
     dt)
   "Truncation ellipsis when `corfu-pixel-perfect-ellipsis' is t")
 
+;; TODO: really understand this and see if this can be simplified and dried up
+(defun corfu-pixel-perfect--show-bar-p ()
+  (when (> corfu--total 0)
+    (let* ((last (min (+ corfu--scroll corfu-count) corfu--total))
+           (bar (ceiling (* corfu-count corfu-count) corfu--total))
+           (lo (min (- corfu-count bar 1) (floor (* corfu-count corfu--scroll) corfu--total))))
+
+      ;; Nonlinearity at the end and the beginning
+      (when (/= corfu--scroll 0)
+        (setq lo (max 1 lo)))
+      (when (/= last corfu--total)
+        (setq lo (min (- corfu-count bar 2) lo)))
+
+      (and (> corfu--total corfu-count) lo))))
+
+(defvar corfu-pixel-perfect--bar-state nil)
+
 (defun corfu-pixel-perfect--make-buffer-advice (buffer)
   "Put a display table with an ellipsis on BUFFER."
   (with-current-buffer buffer
@@ -79,11 +96,9 @@ indicator."
   ;; update again. In addition, if the buffer had been shown before, but has its
   ;; margin or fringe widths updated, we'll need to set the window buffer again
   ;; to trigger the update.
-  (when (or (and right-margin-width
-                 (> right-margin-width 0))
-            (and right-fringe-width
-                 (> right-fringe-width 0)))
-    (set-window-buffer (frame-root-window frame) (current-buffer)))
+  (when (not (eq corfu-pixel-perfect--bar-state (corfu-pixel-perfect--show-bar-p)))
+    (set-window-buffer (frame-root-window frame) (current-buffer))
+    (setq corfu-pixel-perfect--bar-state (not corfu-pixel-perfect--bar-state)))
   frame)
 
 (cl-defmethod corfu--affixate :around (cands &context (corfu-pixel-perfect-mode (eql t)))
@@ -218,12 +233,15 @@ A scroll bar is displayed from LO to LO+BAR."
         (with-silent-modifications
           (erase-buffer)
 
-          (if corfu-pixel-perfect-ellipsis
-              (progn
-                (setq-local right-margin-width 1)
-                (setq-local right-fringe-width nil))
-            (setq-local right-fringe-width bw)
-            (setq-local right-margin-width 0))
+          ;; adjusts margin and fringe when a scroll bar is needed
+          (if lo
+              (if corfu-pixel-perfect-ellipsis
+                  (setq-local right-margin-width 1
+                              right-fringe-width nil)
+                (setq-local right-fringe-width bw
+                            right-margin-width 0))
+            (setq-local right-margin-width 0
+                        right-fringe-width nil))
 
           (insert (string-join
                    (cl-loop for i from 0 to (1- (length lines))
