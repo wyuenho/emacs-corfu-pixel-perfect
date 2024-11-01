@@ -63,9 +63,7 @@ indicator."
 (defun corfu-pixel-perfect--make-buffer-advice (buffer)
   "Put a display table with an ellipsis on BUFFER."
   (with-current-buffer buffer
-    (let ((dt (make-display-table)))
-      (set-display-table-slot dt 'truncation ?\x2026)
-      (setq-local buffer-display-table dt)))
+    (setq-local buffer-display-table corfu-pixel-perfect--display-table))
   buffer)
 
 (defun corfu-pixel-perfect--make-frame-advice (frame)
