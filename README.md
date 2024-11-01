@@ -300,9 +300,9 @@ publishing this new package.
   to parse and reformat irregularly formatted strings without abusing text
   properties, or worse, using a parser. The design space for completion popup
   column alignment is actually quite large. I may revisit some options to chain
-  formatters after looking at how other IDEs design their completion popups. For
-  now, I think keeping the formatted output simple and predictable is the best
-  course of action as it keeps the API clean.
+  formatters after looking at how other IDEs design theirs. For now, I think
+  keeping the formatted output simple and predictable is the best course of
+  action as it keeps the API composable.
 
 
 ### Were there any issues filed on `corfu` regarding the issued found?
