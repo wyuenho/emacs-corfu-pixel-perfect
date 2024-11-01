@@ -275,8 +275,10 @@ A scroll bar is displayed from LO to LO+BAR."
   :global t
   :group 'corfu-pixel-perfect
   (when corfu--frame
-    (kill-buffer " *corfu*")
-    (delete-frame corfu--frame)
+    (when-let ((buf (get-buffer " *corfu*")))
+      (kill-buffer buf))
+    (when (frame-live-p corfu--frame)
+      (delete-frame corfu--frame))
     (setq corfu--frame nil))
   (if corfu-pixel-perfect-mode
       (progn
