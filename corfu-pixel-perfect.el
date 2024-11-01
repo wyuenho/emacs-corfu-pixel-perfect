@@ -60,23 +60,6 @@ indicator."
     dt)
   "Truncation ellipsis when `corfu-pixel-perfect-ellipsis' is t")
 
-;; TODO: really understand this and see if this can be simplified and dried up
-(defun corfu-pixel-perfect--show-bar-p ()
-  (when (> corfu--total 0)
-    (let* ((last (min (+ corfu--scroll corfu-count) corfu--total))
-           (bar (ceiling (* corfu-count corfu-count) corfu--total))
-           (lo (min (- corfu-count bar 1) (floor (* corfu-count corfu--scroll) corfu--total))))
-
-      ;; Nonlinearity at the end and the beginning
-      (when (/= corfu--scroll 0)
-        (setq lo (max 1 lo)))
-      (when (/= last corfu--total)
-        (setq lo (min (- corfu-count bar 2) lo)))
-
-      (and (> corfu--total corfu-count) lo))))
-
-(defvar corfu-pixel-perfect--bar-state nil)
-
 (defun corfu-pixel-perfect--make-buffer-advice (buffer)
   "Put a display table with an ellipsis on BUFFER."
   (with-current-buffer buffer
@@ -96,9 +79,7 @@ indicator."
   ;; update again. In addition, if the buffer had been shown before, but has its
   ;; margin or fringe widths updated, we'll need to set the window buffer again
   ;; to trigger the update.
-  (when (not (eq corfu-pixel-perfect--bar-state (corfu-pixel-perfect--show-bar-p)))
-    (set-window-buffer (frame-root-window frame) (current-buffer))
-    (setq corfu-pixel-perfect--bar-state (not corfu-pixel-perfect--bar-state)))
+  (set-window-buffer (frame-root-window frame) (current-buffer))
   frame)
 
 (cl-defmethod corfu--affixate :around (cands &context (corfu-pixel-perfect-mode (eql t)))
