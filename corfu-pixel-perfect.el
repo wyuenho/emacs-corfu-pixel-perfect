@@ -50,9 +50,7 @@ If nil, the bar is shown on the margin with ellipsis as the truncation
 indicator."
   :type 'boolean)
 
-(define-fringe-bitmap 'corfu-pixel-perfect-scroll-bar
-  (vector #b0)
-  255 16 '(center t))
+(define-fringe-bitmap 'corfu-pixel-perfect-scroll-bar [])
 
 (defconst corfu-pixel-perfect--display-table
   (let ((dt (make-display-table)))
