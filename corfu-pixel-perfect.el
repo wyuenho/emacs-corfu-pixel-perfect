@@ -114,8 +114,8 @@ terminal."
          (sw (string-pixel-width (string-join (cl-loop for x in cands collect (caddr x)) "\n")))
          (fw (default-font-width))
          (width (max (+ pw cw sw) (* fw corfu-min-width)))
-         (marginl (and (> ml 0) (propertize " " 'display `(space :width (,ml)))))
-         (marginr (and (> mr 0) (propertize " " 'display `(space :width (,mr))))))
+         (marginl (if (> ml 0) (propertize " " 'display `(space :width (,ml)))))
+         (marginr (if (> mr 0) (propertize " " 'display `(space :width (,mr))))))
 
     (cl-loop for (cand prefix suffix) being the elements of cands
              using (index i)
