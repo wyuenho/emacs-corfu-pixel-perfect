@@ -228,7 +228,7 @@ A scroll bar is displayed from LO to LO+BAR."
                 (setq-local right-margin-width 1)
                 (setq-local right-fringe-width nil))
             (setq-local right-fringe-width bw)
-            (setq-local right-margin-width nil))
+            (setq-local right-margin-width 0))
 
           (insert (string-join
                    (cl-loop for i from 0 to (1- (length lines))
