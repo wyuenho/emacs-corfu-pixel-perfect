@@ -305,7 +305,7 @@ publishing this new package.
   action as it keeps the API composable.
 
 
-### Were there any issues filed on `corfu` regarding the issued found?
+### Were there any issues filed on `corfu` regarding the issues found?
 
 Some of the problems illustrated here had been raised, but I did not file any
 issues.
