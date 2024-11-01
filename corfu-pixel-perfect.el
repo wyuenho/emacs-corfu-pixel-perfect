@@ -70,16 +70,11 @@ indicator."
 
 (defun corfu-pixel-perfect--make-frame-advice (frame)
   "Ensure buffer local variables take effect in FRAME."
+  ;; So we don't reset frame params unnecessarily, which can be expensive
   (let ((nsg (frame-parameter frame 'no-special-glyphs)))
-    ;; so we don't reset frame params unnecessarily, which can be expensive
-    (cond ((and (not corfu-pixel-perfect-ellipsis) nsg)
-           (set-frame-parameter frame 'no-special-glyphs nil))
-          ((and corfu-pixel-perfect-ellipsis (not nsg))
-           (set-frame-parameter frame 'no-special-glyphs t))
-          ((and corfu-pixel-perfect-ellipsis nsg)
-           (set-frame-parameter frame 'no-special-glyphs nil))
-          ((and (not corfu-pixel-perfect-ellipsis) (not nsg))
-           (set-frame-parameter frame 'no-special-glyphs t))))
+    ;; This is a lot of negations and double negatives...
+    (when (not (eq corfu-pixel-perfect-ellipsis (not nsg)))
+      (set-frame-parameter frame 'no-special-glyphs (not corfu-pixel-perfect-ellipsis))))
 
   ;; If the buffer had never been shown before, the margin text will not be
   ;; visible until the frame is visible, so we need to force the window to
@@ -172,9 +167,9 @@ terminal."
                  (ml (if (> prefix-pixel-width 0) 0 corfu-left-margin-width))
                  (ml (max 0 (ceiling (* fw ml))))
                  ;; Adjust right margin width according to scroll bar width
-                 (bw (max 0 (ceiling (* fw corfu-bar-width))))
-                 (mr (max 0 (ceiling (* fw corfu-right-margin-width))))
-                 (mr (- (max mr bw) (min mr bw)))
+                 (bw (max 0 (* fw corfu-bar-width)))
+                 (mr (max 0 (* fw corfu-right-margin-width)))
+                 (mr (floor (- (max mr bw) (min mr bw))))
                  (offset (+ prefix-pixel-width ml))
                  (lines (corfu-pixel-perfect--format-candidates rcands curr ml mr))
                  (content-width (string-pixel-width (string-join lines "\n"))))
@@ -200,9 +195,9 @@ A scroll bar is displayed from LO to LO+BAR."
     (with-current-buffer (corfu--make-buffer " *corfu*")
       (let* ((ch (default-line-height))
              (cw (default-font-width))
-             (mr (max 0 (ceiling (* cw corfu-right-margin-width))))
-             (bw (max 0 (ceiling (* cw corfu-bar-width))))
-             (bw (min mr bw))
+             (mr (max 0 (* cw corfu-right-margin-width)))
+             (bw (max 0 (* cw corfu-bar-width)))
+             (bw (ceiling (min mr bw)))
              (sbar (propertize " " 'display
                                (if corfu-pixel-perfect-ellipsis
                                    `((margin right-margin)
