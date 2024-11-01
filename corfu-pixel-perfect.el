@@ -260,6 +260,10 @@ A scroll bar is displayed from LO to LO+BAR."
   "Corfu in pixel perfect alignment."
   :global t
   :group 'corfu-pixel-perfect
+  (when corfu--frame
+    (kill-buffer " *corfu*")
+    (delete-frame corfu--frame)
+    (setq corfu--frame nil))
   (if corfu-pixel-perfect-mode
       (progn
         (advice-add 'corfu--make-buffer :filter-return 'corfu-pixel-perfect--make-buffer-advice)
