@@ -195,11 +195,8 @@ A scroll bar is displayed from LO to LO+BAR."
                                      ,(propertize " " 'face 'corfu-bar))
                                  '(right-fringe corfu-pixel-perfect-scroll-bar corfu-bar))))
              (pos (posn-x-y pos))
-             (width (+
-                     ;; scroll bar
-                     (if lo (if corfu-pixel-perfect-ellipsis cw bw) 0)
-                     ;; -4 because of margins and some additional safety
-                     (min (* cw (min (- (frame-width) 4) corfu-max-width)) content-width)))
+             ;; -4 because of margins and some additional safety
+             (width (min (* cw (min (- (frame-width) 4) corfu-max-width)) content-width))
              ;; XXX HACK: Minimum popup height must be at least 1 line of the
              ;; parent frame (gh:minad/corfu#261).
              (height (max lh (* (length lines) ch)))
@@ -216,13 +213,21 @@ A scroll bar is displayed from LO to LO+BAR."
 
           ;; adjusts margin and fringe when a scroll bar is needed
           (if lo
-              (if corfu-pixel-perfect-ellipsis
-                  (setq-local right-margin-width 1
-                              right-fringe-width nil)
-                (setq-local right-fringe-width bw
-                            right-margin-width 0))
-            (setq-local right-margin-width 0
-                        right-fringe-width nil))
+              (progn
+                (setq-local fringe-indicator-alist nil)
+                (if corfu-pixel-perfect-ellipsis
+                    (setq-local right-margin-width 1
+                                right-fringe-width
+                                (alist-get 'right-fringe-width corfu--buffer-parameters))
+                  (setq-local right-fringe-width bw
+                              right-margin-width
+                              (alist-get 'right-margin-width corfu--buffer-parameters))))
+            (setq-local right-margin-width
+                        (alist-get 'right-margin-width corfu--buffer-parameters)
+                        right-fringe-width
+                        (alist-get 'right-fringe-width corfu--buffer-parameters)
+                        fringe-indicator-alist
+                        (alist-get 'fringe-indicator-alist corfu--buffer-parameters)))
 
           (insert (string-join
                    (cl-loop for i from 0 to (1- (length lines))
