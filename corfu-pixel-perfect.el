@@ -79,14 +79,11 @@ indicator."
   ;; update again. In addition, if the buffer had been shown before, but has its
   ;; margin or fringe widths updated, we'll need to set the window buffer again
   ;; to trigger the update.
-  (let* ((root-window (frame-root-window frame))
-         (buffer (window-buffer root-window)))
-    (with-current-buffer buffer
-      (when (or (and right-margin-width
-                     (> right-margin-width 0))
-                (and right-fringe-width
-                     (> right-fringe-width 0)))
-        (set-window-buffer root-window buffer))))
+  (when (or (and right-margin-width
+                 (> right-margin-width 0))
+            (and right-fringe-width
+                 (> right-fringe-width 0)))
+    (set-window-buffer (frame-root-window frame) (current-buffer)))
   frame)
 
 (cl-defmethod corfu--affixate :around (cands &context (corfu-pixel-perfect-mode (eql t)))
@@ -245,7 +242,8 @@ A scroll bar is displayed from LO to LO+BAR."
                    "\n"))
           (goto-char (point-min)))
 
-        (setq corfu--frame (corfu--make-frame corfu--frame x y width height (current-buffer)))))))
+        (with-current-buffer (current-buffer)
+          (setq corfu--frame (corfu--make-frame corfu--frame x y width height)))))))
 
 (cl-defmethod corfu--exhibit :around (&context (corfu-pixel-perfect-mode (eql t)) &optional auto)
   (cl-flet ((corfu--popup-show
