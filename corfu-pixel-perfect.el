@@ -66,18 +66,19 @@ indicator."
 
 (defun corfu-pixel-perfect--make-frame-advice (frame)
   "Ensure buffer local variables take effect in FRAME."
-  ;; So we don't reset frame params unnecessarily, which can be expensive
-  (let ((nsg (frame-parameter frame 'no-special-glyphs)))
-    ;; This is a lot of negations and double negatives...
-    (when (not (eq corfu-pixel-perfect-ellipsis (not nsg)))
-      (set-frame-parameter frame 'no-special-glyphs (not corfu-pixel-perfect-ellipsis))))
+  (let ((inhibit-redisplay t))
+    ;; So we don't reset frame params unnecessarily, which can be expensive
+    (let ((nsg (frame-parameter frame 'no-special-glyphs)))
+      ;; This is a lot of negations and double negatives...
+      (when (not (eq corfu-pixel-perfect-ellipsis (not nsg)))
+        (set-frame-parameter frame 'no-special-glyphs (not corfu-pixel-perfect-ellipsis))))
 
-  ;; If the buffer had never been shown before, the margin text will not be
-  ;; visible until the frame is visible, so we need to force the window to
-  ;; update again. In addition, if the buffer had been shown before, but has its
-  ;; margin or fringe widths updated, we'll need to set the window buffer again
-  ;; to trigger the update.
-  (set-window-buffer (frame-root-window frame) (current-buffer))
+    ;; If the buffer had never been shown before, the margin text will not be
+    ;; visible until the frame is visible, so we need to force the window to
+    ;; update again. In addition, if the buffer had been shown before, but has its
+    ;; margin or fringe widths updated, we'll need to set the window buffer again
+    ;; to trigger the update.
+    (set-window-buffer (frame-root-window frame) (current-buffer)))
   frame)
 
 (cl-defmethod corfu--affixate :around (cands &context (corfu-pixel-perfect-mode (eql t)))
