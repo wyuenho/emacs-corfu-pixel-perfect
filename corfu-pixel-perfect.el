@@ -224,7 +224,7 @@ A scroll bar is displayed from LO to LO+BAR."
         (with-silent-modifications
           (erase-buffer)
 
-          ;; adjusts margin and fringe when a scroll bar is needed
+          ;; Adjust margin and fringe when a scroll bar is needed
           (if lo
               (if corfu-pixel-perfect-ellipsis
                   (setq-local right-margin-width 1
@@ -234,7 +234,7 @@ A scroll bar is displayed from LO to LO+BAR."
             (setq-local right-margin-width nil
                         right-fringe-width nil))
 
-          ;; really enable ellipsis when the window text area is shorter than
+          ;; Enable ellipsis when the window text area is shorter than
           ;; the content-width
           (setf (alist-get 'no-special-glyphs corfu--frame-parameters)
                 (if corfu-pixel-perfect-ellipsis
