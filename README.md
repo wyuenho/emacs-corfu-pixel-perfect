@@ -202,26 +202,24 @@ I'll document in detail all of these relatively minor issues in due course.
 
 ## Performance
 
-A benchmark using a rather extreme `corfu-count` of 100 and 100 completion
-strings with 100 glyphs is run on a MacBook Pro M1 Pro from 2021 720 times.
+A benchmark using all default settings except a rather extreme `corfu-count` of
+100 and 100 completion strings with 100 glyphs is run on a MacBook Pro M1 Pro
+from 2021 720 times per run for 10 runs.
 
-With vanilla `corfu`, it finishes in around 6 to 7.5s, equivalent to around 100
-FPS. `corfu-pixel-perfect`finishes in 8.4 to 8.8s, equivalent to around 80
-FPS. The high variability of performance with vanilla `corfu` is likely due to
+With vanilla `corfu`, it finishes in around 7.87s to 8.23s, equivalent to around
+89 FPS. `corfu-pixel-perfect`finishes in 8.22s to 8.57s, equivalent to around 85
+FPS. The higher variability of performance with vanilla `corfu` is due to
 programmatic truncation using `truncate-string-to-width` triggering some amount
 of GCs. `corfu-pixel-perfect` by default does not use any kind of programmatic
 string truncation, but simply rely on the window system to clip the text that is
-longer than your `corfu-max-width` value. In summary, `corfu` is about 25%
-faster when compared to `corfu-pixel-perfect` in extreme cases, but with higher
-variability and thus unpredictability in performance, whereas
-`corfu-pixel-perfect` is slower, but more predictable.
+longer than your `corfu-max-width` value. In summary, `corfu-pixel-perfect` is
+just 5% slower than `corfu` in extreme cases. `corfu`'s performance is more
+variable, whereas `corfu-pixel-perfect` is the opposite.
 
 In reality, with a reasonable `corfu-count` such as 20, both implementations
-easily exceed 300 frames per second. If you leave `corfu-count` to the default
-of 10, you need to be able to perceive images 6x faster than your latest
-flagship phone can shoot a show motion video to feel any difference. Therefore,
-for any perceived slowdown, the culprit is far more likely to be your
-`completion-at-point` function. If not, please do let me know.
+easily exceed 260 frames per second. Therefore, for any perceived slowdown, the
+culprit is far more likely to be your `completion-at-point` function. If not,
+please do let me know.
 
 You can eval this [benchmark](benchmark/benchmark.el) to see for yourself.
 
@@ -343,15 +341,6 @@ what develops over there, I can promise as soon as something breaks, I'll fix
 it. A usable, performant and correct auto-completion UI is very important to me
 as I use it every day, maintaining stability in this package is a priority for
 me by default.
-
-
-### Is it slow?
-
-Is 300 FPS in the average case slow? It's slower than vanilla `corfu`, but I
-doubt you'll notice it on any computers purchased in the last 4 years or
-so. Your mileage may vary of course. However, if Linux is your OS, you are in
-luck, because your window managers, compositors and whatnot are much faster than
-macOS', which is what the above benchmark number is based on.
 
 
 ### Which version of Emacs does this package support?
