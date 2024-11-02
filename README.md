@@ -69,25 +69,18 @@ favorite auto-completion popup.
 |![Suffix Before](screenshots/suffix-before.png)|![Suffix After](screenshots/suffix-after.png)|
 
 
+### Misalignment due to faces using the same font but in different heights
+
+| corfu | corfu-pixel-perfect |
+|-------|---------------------|
+|![Height Before](screenshots/diff-height-before.png)|![Suffix After](screenshots/diff-height-after.png)|
+
+
 ### Emoji causing misalignment due to font width differences
 
 | corfu | corfu-pixel-perfect |
 |-------|---------------------|
 |![Emoji Before](screenshots/emoji-before.png)|![Emoji After](screenshots/emoji-after.png) [^1]|
-
-
-### Misalignment of right margin and missing scroll bar due to faces using different widths
-
-| corfu | corfu-pixel-perfect |
-|-------|---------------------|
-|![Different Face Width Before](screenshots/diff-width-before.png)|![Different Face Width After](screenshots/diff-width-after.png)|
-
-
-### Misalignment of right margin and missing scroll bar due to faces using different slants
-
-| corfu | corfu-pixel-perfect |
-|-------|---------------------|
-|![Different Face Slant Before](screenshots/diff-slant-before.png)|![Different Face Slant After](screenshots/diff-slant-after.png)
 
 
 [^1]: The height is still misaligned due to a similar treatment as default font width to line height, this will probably be addressed at a later time.
