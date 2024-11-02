@@ -109,9 +109,9 @@ performance and beauty. I chose to give up beauty on this one.
 As to the column of ellipsis, coming from outside of Emacs, this may seem
 strange to you, and I agree, but this behavior is at least somewhat consistent
 with Emacs's default behavior. Emacs shows a whole column of bitmap right arrows
-on a GUI and ellipsis on the terminal when clipping a table of padded text. Let
-me know if you hate it, I think there's enough performance headroom in the usual
-case to make the ellipsis less intrusive.
+on a GUI and $ on the terminal when clipping a table of padded text. Let me know
+if you hate it, I think there's enough performance headroom in the usual case to
+make the ellipsis less intrusive.
 
 
 ## Future improvements
