@@ -234,10 +234,9 @@ and a temporary buffer for every measurement. The situation has improved a bit
 with the introduction of a `buffer-text-pixel-size` C function in Emacs 29, and
 a new `string-pixel-width` Elisp function that uses it.
 
-In addition, Emacs 29 now offers a function called `string-glyph-split` that
-will respect text properties, faces and composed characters such as emojis, so
-Elisp programmers can now truncate strings more accurately glyph by glyph should
-we choose to.
+In addition, Emacs now offers a function called `string-glyph-split` that will
+respect text properties, faces and composed characters such as emojis, so Elisp
+programmers can now truncate strings more accurately should we choose to.
 
 With these new capabilities, Elisp programs can finally measure glyph widths in
 pixels with acceptable performance in most circumstances.
