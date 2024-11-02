@@ -61,25 +61,30 @@ indicator."
 (defun corfu-pixel-perfect--make-buffer-advice (buffer)
   "Put a display table with an ellipsis on BUFFER."
   (with-current-buffer buffer
-    (setq-local buffer-display-table corfu-pixel-perfect--display-table))
+    (setq-local buffer-display-table corfu-pixel-perfect--display-table
+                left-fringe-width nil
+                right-fringe-width nil
+                fringe-indicator-alist nil))
   buffer)
 
-(defun corfu-pixel-perfect--make-frame-advice (frame)
+(defun corfu-pixel-perfect--make-frame-advice (fn &rest args)
   "Ensure buffer local variables take effect in FRAME."
-  (let ((inhibit-redisplay t))
-    ;; So we don't reset frame params unnecessarily, which can be expensive
-    (let ((nsg (frame-parameter frame 'no-special-glyphs)))
-      ;; This is a lot of negations and double negatives...
-      (when (not (eq corfu-pixel-perfect-ellipsis (not nsg)))
-        (set-frame-parameter frame 'no-special-glyphs (not corfu-pixel-perfect-ellipsis))))
+  (make-frame-visible
+   (let ((inhibit-redisplay t)
+         ;; Setting the fringe on the frame via buffer local vars is just crazy...
+         (frame (let ((left-fringe-width 0)
+                      (right-fringe-width 0))
+                  (cl-letf (((symbol-function 'make-frame-visible) (symbol-function 'ignore)))
+                    (apply fn args)))))
 
-    ;; If the buffer had never been shown before, the margin text will not be
-    ;; visible until the frame is visible, so we need to force the window to
-    ;; update again. In addition, if the buffer had been shown before, but has its
-    ;; margin or fringe widths updated, we'll need to set the window buffer again
-    ;; to trigger the update.
-    (set-window-buffer (frame-root-window frame) (current-buffer)))
-  frame)
+     ;; If the buffer had never been shown before, the margin text will not be
+     ;; visible until the frame is visible, so we need to force the window to
+     ;; update again. In addition, if the buffer had been shown before, but has
+     ;; its margin or fringe widths updated, we'll need to set the window buffer
+     ;; again to trigger the update. Virtually no perf hit here.
+     (set-window-buffer (frame-root-window frame) (current-buffer))
+
+     frame)))
 
 (cl-defmethod corfu--affixate :around (cands &context (corfu-pixel-perfect-mode (eql t)))
   (let ((result (cl-call-next-method cands)))
@@ -137,14 +142,26 @@ terminal."
                     marginr)
                 marginr)))))
 
+(defun corfu-pixel-perfect--scroll-bar-range ()
+  "Return the range of the scroll bar.
+
+If a scroll bar is required, the value returned is an inclusive
+range in a list with 2 elements, nil otherwise."
+  (let* ((last (min (+ corfu--scroll corfu-count) corfu--total))
+         (bar (ceiling (* corfu-count corfu-count) corfu--total))
+         (lo (min (- corfu-count bar 1) (floor (* corfu-count corfu--scroll) corfu--total))))
+    ;; Nonlinearity at the end and the beginning
+    (when (/= corfu--scroll 0)
+      (setq lo (max 1 lo)))
+    (when (/= last corfu--total)
+      (setq lo (min (- corfu-count bar 2) lo)))
+    (and (> corfu--total corfu-count) (list lo bar))))
+
 (defun corfu-pixel-perfect--candidates-popup (pos)
   "Show candidates popup at POS."
   (when (> corfu--total 0)
     (corfu--compute-scroll)
-    (pcase-let* ((last (min (+ corfu--scroll corfu-count) corfu--total))
-                 (bar (ceiling (* corfu-count corfu-count) corfu--total))
-                 (lo (min (- corfu-count bar 1) (floor (* corfu-count corfu--scroll) corfu--total)))
-                 (curr (- corfu--index corfu--scroll))
+    (pcase-let* ((curr (- corfu--index corfu--scroll))
                  (dcands (corfu--affixate
                           (cl-loop repeat corfu-count
                                    for c in (nthcdr corfu--scroll corfu--candidates)
@@ -163,13 +180,8 @@ terminal."
                  (offset (+ prefix-pixel-width ml))
                  (lines (corfu-pixel-perfect--format-candidates rcands curr ml mr))
                  (content-width (string-pixel-width (string-join lines "\n"))))
-      ;; Nonlinearity at the end and the beginning
-      (when (/= corfu--scroll 0)
-        (setq lo (max 1 lo)))
-      (when (/= last corfu--total)
-        (setq lo (min (- corfu-count bar 2) lo)))
-      (corfu--popup-show pos offset content-width lines curr
-                         (and (> corfu--total corfu-count) lo) bar))))
+      (apply 'corfu--popup-show pos offset content-width lines curr
+             (corfu-pixel-perfect--scroll-bar-range)))))
 
 (cl-defmethod corfu--popup-show :around (pos off content-width lines
                                              &context (corfu-pixel-perfect-mode (eql t))
@@ -188,14 +200,16 @@ A scroll bar is displayed from LO to LO+BAR."
              (mr (max 0 (* cw corfu-right-margin-width)))
              (bw (max 0 (* cw corfu-bar-width)))
              (bw (ceiling (min mr bw)))
+             (bw (if lo (if corfu-pixel-perfect-ellipsis cw bw) 0))
+             (width (+ bw
+                       ;; -4 because of margins and some additional safety
+                       (min (* cw (min (- (frame-width) 4) corfu-max-width)) content-width)))
              (sbar (propertize " " 'display
                                (if corfu-pixel-perfect-ellipsis
                                    `((margin right-margin)
                                      ,(propertize " " 'face 'corfu-bar))
                                  '(right-fringe corfu-pixel-perfect-scroll-bar corfu-bar))))
              (pos (posn-x-y pos))
-             ;; -4 because of margins and some additional safety
-             (width (min (* cw (min (- (frame-width) 4) corfu-max-width)) content-width))
              ;; XXX HACK: Minimum popup height must be at least 1 line of the
              ;; parent frame (gh:minad/corfu#261).
              (height (max lh (* (length lines) ch)))
@@ -210,24 +224,22 @@ A scroll bar is displayed from LO to LO+BAR."
         (with-silent-modifications
           (erase-buffer)
 
-          (if (< width content-width)
-              (progn
-                (setq-local buffer-display-table corfu-pixel-perfect--display-table))
-            (setq-local buffer-display-table nil))
-
           ;; adjusts margin and fringe when a scroll bar is needed
           (if lo
               (if corfu-pixel-perfect-ellipsis
                   (setq-local right-margin-width 1
-                              right-fringe-width
-                              (alist-get 'right-fringe-width corfu--buffer-parameters))
+                              right-fringe-width nil)
                 (setq-local right-fringe-width bw
-                            right-margin-width
-                            (alist-get 'right-margin-width corfu--buffer-parameters)))
-            (setq-local right-margin-width
-                        (alist-get 'right-margin-width corfu--buffer-parameters)
-                        right-fringe-width
-                        (alist-get 'right-fringe-width corfu--buffer-parameters)))
+                            right-margin-width nil))
+            (setq-local right-margin-width nil
+                        right-fringe-width nil))
+
+          ;; really enable ellipsis when the window text area is shorter than
+          ;; the content-width
+          (setf (alist-get 'no-special-glyphs corfu--frame-parameters)
+                (if corfu-pixel-perfect-ellipsis
+                    (>= (- width bw) content-width)
+                  t))
 
           (insert (string-join
                    (cl-loop for i from 0 to (1- (length lines))
@@ -255,6 +267,8 @@ A scroll bar is displayed from LO to LO+BAR."
               (corfu--popup-show pos off (string-pixel-width (car lines)) lines curr lo bar)))
     (cl-call-next-method auto)))
 
+(defvar corfu-pixel-perfect--corfu--frame-parameters nil)
+
 ;;;###autoload
 (define-minor-mode corfu-pixel-perfect-mode
   "Corfu in pixel perfect alignment."
@@ -268,10 +282,12 @@ A scroll bar is displayed from LO to LO+BAR."
     (setq corfu--frame nil))
   (if corfu-pixel-perfect-mode
       (progn
+        (setq corfu-pixel-perfect--corfu--frame-parameters (copy-tree corfu--frame-parameters))
         (advice-add 'corfu--make-buffer :filter-return 'corfu-pixel-perfect--make-buffer-advice)
-        (advice-add 'corfu--make-frame :filter-return 'corfu-pixel-perfect--make-frame-advice)
+        (advice-add 'corfu--make-frame :around 'corfu-pixel-perfect--make-frame-advice)
         (advice-add 'corfu--format-candidates :override 'corfu-pixel-perfect--format-candidates)
         (advice-add 'corfu--candidates-popup :override 'corfu-pixel-perfect--candidates-popup))
+    (setq corfu--frame-parameters corfu-pixel-perfect--corfu--frame-parameters)
     (advice-remove 'corfu--make-buffer 'corfu-pixel-perfect--make-buffer-advice)
     (advice-remove 'corfu--make-frame 'corfu-pixel-perfect--make-frame-advice)
     (advice-remove 'corfu--format-candidates 'corfu-pixel-perfect--format-candidates)
