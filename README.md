@@ -267,10 +267,11 @@ inconsequential above. 2) incompatibility with Emacs <= 28, of which I dismiss
 as irrelevant because the original PR could easily be molded into an extension
 that requires Emacs >= 29, as demonstrated here, and most centrally, 3) around a
 collaborator claiming the following as a feature that I regressed on, despite
-the corfu author acknowledging this "feature" was never intended, and both
-agreeing this "feature" was not ideal, but still insisting on "non-regression".
+the author acknowledging this "feature" was never intended, and both agreeing
+this "feature" was not ideal, but the author still insisting on "it currently
+works better". [^2]
 
-![Airquote Feature](screenshots/airquote-feature.png) [^2]
+![Airquote Feature](screenshots/airquote-feature.png) [^3]
 
 
 There are a number of other reasons for the rejection of the change I'm sure,
@@ -290,10 +291,19 @@ publishing this new package.
   to parse and reformat irregularly formatted strings without abusing text
   properties, or worse, using a parser. The design space for completion popup
   column alignment is actually quite large. I may revisit some options to chain
-  formatters after looking at how other IDEs design theirs. For now, I think
-  keeping the formatted output simple and predictable is the best course of
-  action as it keeps the API composable.
+  formatters after taking inspiration from other IDEs. For now, I think keeping
+  the formatted output simple and predictable is the best course of action as
+  the API remains composable.
 
+[^3]: Which has since been altered to take a similar approach first used in this
+  package, but still programmatically truncates, without allowing the user to
+  expand the popup frame with a mouse to see the clipped annotation. While this
+  is admittedly an improvement, this right-align-at-best-effort approach still
+  causes problems for downstream Elisp programs due to its irregularity,
+  nevermind the result is just as distracting when `corfu-max-width` is lowered
+  so more lines are truncated in seemingly random order while the rest has the
+  annotation floating in inexplicably. An example can be seen
+  [here](#much-simpler-terminal-mode).
 
 
 ### Were there any issues filed on `corfu` regarding the bugs found?
