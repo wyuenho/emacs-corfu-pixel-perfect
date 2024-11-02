@@ -66,7 +66,7 @@ favorite auto-completion popup.
 
 | corfu | corfu-pixel-perfect |
 |-------|---------------------|
-|![Suffix Before](screenshots/suffix-before.png)|![Suffix After](screenshots/suffix-after.png)|
+|![Variable Font Before](screenshots/var-font-before.png)|![Variable Font After](screenshots/var-font-after.png)|
 
 
 ### Misalignment due to faces using the same font but in different heights
