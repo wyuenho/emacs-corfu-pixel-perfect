@@ -265,11 +265,12 @@ Without getting too personal, the technical hangup seems to be around a
 combinations of 1) perceived performance degradation, of which I've proven to be
 inconsequential above. 2) incompatibility with Emacs <= 28, of which I dismiss
 as irrelevant because the original PR could easily be molded into an extension
-that requires Emacs >= 29, as demonstrated here, and most centrally, 3) around a
-collaborator claiming the following as a feature that I regressed on, despite
-the author acknowledging this "feature" was never intended, and both agreeing
-this "feature" was not ideal, but the author still insisting on "it currently
-works better". [^2]
+that requires Emacs >= 29, as demonstrated in a separate PR and here, 3)
+"sacrificing existing styling" which is hostile to accessibility and usablity,
+by offering an option for the users to opt into, and most centrally, 4) around a
+collaborator claiming the following as a feature that regressed, despite the
+author acknowledging it was never intended, and both agreeing it was not ideal,
+but the author still insisting "the current alignment works better". [^2]
 
 ![Airquote Feature](screenshots/airquote-feature.png) [^3]
 
@@ -295,15 +296,15 @@ publishing this new package.
   the formatted output simple and predictable is the best course of action as
   the API remains composable.
 
-[^3]: Which has since been altered to take a similar approach first used in this
-  package, but still programmatically truncates, without allowing the user to
-  expand the popup frame with a mouse to see the clipped annotation. While this
-  is admittedly an improvement, this right-align-at-best-effort approach still
-  causes problems for downstream Elisp programs due to its irregularity,
-  nevermind the result is just as distracting when `corfu-max-width` is lowered
-  so more lines are truncated in seemingly random order while the rest has the
-  annotation floating in inexplicably. An example can be seen
-  [here](#much-simpler-terminal-mode).
+[^3]: Which has since been altered a few days after the PR was closed, to take a
+  similar approach first used in this package, but still programmatically
+  truncates, without allowing the user to expand the popup frame with a mouse to
+  see the clipped annotation. While this is admittedly an improvement, this
+  right-align-at-best-effort approach still causes problems for downstream Elisp
+  programs due to its irregularity, nevermind the result is just as distracting
+  when `corfu-max-width` is lowered so more lines are truncated in seemingly
+  random order while the rest has the annotation floating in inexplicably. An
+  example can be seen [here](#much-simpler-terminal-mode).
 
 
 ### Were there any issues filed on `corfu` regarding the bugs found?
