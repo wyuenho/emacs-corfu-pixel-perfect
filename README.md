@@ -266,8 +266,8 @@ combinations of 1) perceived performance degradation, of which I've proven to be
 inconsequential above. 2) incompatibility with Emacs <= 28, of which I dismiss
 as irrelevant because the original PR could easily be molded into an extension
 that requires Emacs >= 29, as demonstrated in a separate PR and here, 3)
-"sacrificing existing styling" which is hostile to accessibility and usablity,
-by offering an option for the users to opt into, and most centrally, 4) around a
+"sacrificing existing styling" that is hostile to accessibility and usablity, by
+offering an option for the users to opt into, and most centrally, 4) around a
 collaborator claiming the following as a feature that regressed, despite the
 author acknowledging it was never intended, and both agreeing it was not ideal,
 but the author still insisting "the current alignment works better". [^2]
