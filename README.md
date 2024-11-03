@@ -105,7 +105,7 @@ make the ellipsis less intrusive.
 
 This new option offers an even more distraction-free experience for those who
 like to peruse the names of the candidates before narrowing down a selection by
-their signatures.
+its signature.
 
 To enable this feature, put the major mode(s) you'd like the annotations hidden
 into `corfu-pixel-perfect-ignore-annotation-modes`.
