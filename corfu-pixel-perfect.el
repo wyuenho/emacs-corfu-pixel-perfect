@@ -115,9 +115,12 @@ indicator."
 
 ;; modified from `string-pixel-width' in subr-x.el
 (defun corfu--string-pixel-size (string)
-  "Return the size of STRING in pixels."
+  "Return the size of STRING in pixels.
+
+The return value is a `cons' cell where the `car' is the width and
+`cdr' is the height."
   (if (zerop (length string))
-      0
+      (cons 0 0)
     (with-current-buffer (get-buffer-create " *corfu--string-pixel-size*")
       (setq-local display-line-numbers nil
                   buffer-invisibility-spec nil)
