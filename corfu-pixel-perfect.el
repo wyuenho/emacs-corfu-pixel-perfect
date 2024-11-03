@@ -46,7 +46,7 @@
   "A list of major modes that should not show annotations."
   :type '(repeat function))
 
-(defcustom corfu-pixel-perfect-current-annotation-only t
+(defcustom corfu-pixel-perfect-ignore-annotation-except-current t
   "Whether to show the annotation for the current selection.
 
 When used in combination with
@@ -135,7 +135,8 @@ CURR is the index of the current selection."
     (cl-loop for triple in cands
              with i = 0
              do
-             (unless (= i curr)
+             (unless (and (= i curr)
+                          corfu-pixel-perfect-ignore-annotation-except-current)
                (let ((suffix (caddr triple)))
                  (add-text-properties 0 (length suffix) '(invisible corfu-pixel-perfect) suffix)
                  (setf (caddr triple) suffix)))
