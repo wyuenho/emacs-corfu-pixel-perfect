@@ -122,29 +122,13 @@ The return value is a `cons' cell where the `car' is the width and
   (if (zerop (length string))
       (cons 0 0)
     (with-current-buffer (get-buffer-create " *corfu--string-pixel-size*")
-      (setq-local display-line-numbers nil
-                  buffer-invisibility-spec nil)
+      (setq-local display-line-numbers nil)
       (delete-region (point-min) (point-max))
       (setq line-prefix nil
             wrap-prefix nil)
       (insert (propertize string 'line-prefix nil 'wrap-prefix nil))
       (buffer-text-pixel-size nil nil t))))
 
-(defun corfu-pixel-perfect--hide-annotation-maybe (cands curr)
-  "Hide annotation conditionally.
-CANDS is a list of triples of candidate string, prefix and suffix (annotation).
-CURR is the index of the current selection."
-  (when (memq major-mode corfu-pixel-perfect-ignore-annotation-modes)
-    (cl-loop for triple in cands
-             with i = 0
-             do
-             (unless (and (= i curr)
-                          corfu-pixel-perfect-ignore-annotation-except-current)
-               (let ((suffix (caddr triple)))
-                 (add-text-properties 0 (length suffix) '(invisible corfu-pixel-perfect) suffix)
-                 (setf (caddr triple) suffix)))
-             (cl-incf i)))
-  cands)
 
 (defun corfu-pixel-perfect--format-candidates (cands curr ml mr)
   "Format annotated CANDS.
@@ -184,7 +168,15 @@ terminal."
               (propertize " " 'display `(space :align-to (,(+ ml pw cw
                                                               (- width (+ pw cw sw))
                                                               (- sw (string-pixel-width suffix))))))
-              suffix
+
+              (if (and (memq major-mode corfu-pixel-perfect-ignore-annotation-modes)
+                       (or (/= i curr)
+                           (not corfu-pixel-perfect-ignore-annotation-except-current)))
+                  (progn
+                    (add-text-properties 0 (length suffix) '(invisible corfu-pixel-perfect) suffix)
+                    suffix)
+                suffix)
+
               (if (and (= i curr) marginr)
                   (let ((marginr (substring marginr)))
                     (add-face-text-property 0 (length marginr) 'corfu-current t marginr)
@@ -230,7 +222,6 @@ range in a list with 2 elements, nil otherwise."
                  (mr (max 0 (* fw corfu-right-margin-width)))
                  (mr (floor (- (max mr bw) (min mr bw))))
                  (offset (+ prefix-pixel-width ml))
-                 (cands (corfu-pixel-perfect--hide-annotation-maybe cands curr))
                  (lines (corfu-pixel-perfect--format-candidates cands curr ml mr)))
       (corfu--popup-show pos offset nil lines curr lo bar))))
 
