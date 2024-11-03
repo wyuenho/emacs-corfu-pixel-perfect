@@ -113,7 +113,7 @@ make the ellipsis less intrusive.
 
 ### VS Code style annotations
 
-![VS Code style annotations](screenshoots/vs-code-style-annotation.png)
+![VS Code style annotations](screenshots/vs-code-style-annotation.png)
 
 This new option offers an even more distraction-free experience for those who
 like to peruse the names of the candidates first before narrowing down a
