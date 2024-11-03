@@ -119,12 +119,28 @@ indicator."
   (if (zerop (length string))
       0
     (with-current-buffer (get-buffer-create " *corfu--string-pixel-size*")
-      (setq-local display-line-numbers nil)
+      (setq-local display-line-numbers nil
+                  buffer-invisibility-spec nil)
       (delete-region (point-min) (point-max))
       (setq line-prefix nil
             wrap-prefix nil)
       (insert (propertize string 'line-prefix nil 'wrap-prefix nil))
       (buffer-text-pixel-size nil nil t))))
+
+(defun corfu-pixel-perfect--hide-annotation-maybe (cands curr)
+  "Hide annotation conditionally.
+CANDS is a list of triples of candidate string, prefix and suffix (annotation).
+CURR is the index of the current selection."
+  (when (memq major-mode corfu-pixel-perfect-ignore-annotation-modes)
+    (cl-loop for triple in cands
+             with i = 0
+             do
+             (unless (= i curr)
+               (let ((suffix (caddr triple)))
+                 (add-text-properties 0 (length suffix) '(invisible corfu-pixel-perfect) suffix)
+                 (setf (caddr triple) suffix)))
+             (cl-incf i)))
+  cands)
 
 (defun corfu-pixel-perfect--format-candidates (cands curr ml mr)
   "Format annotated CANDS.
@@ -164,12 +180,7 @@ terminal."
               (propertize " " 'display `(space :align-to (,(+ ml pw cw
                                                               (- width (+ pw cw sw))
                                                               (- sw (string-pixel-width suffix))))))
-
-              (if (and (memq major-mode corfu-pixel-perfect-ignore-annotation-modes)
-                       (/= i curr))
-                  (propertize suffix 'invisible 'corfu-pixel-perfect)
-                suffix)
-
+              suffix
               (if (and (= i curr) marginr)
                   (let ((marginr (substring marginr)))
                     (add-face-text-property 0 (length marginr) 'corfu-current t marginr)
@@ -215,6 +226,7 @@ range in a list with 2 elements, nil otherwise."
                  (mr (max 0 (* fw corfu-right-margin-width)))
                  (mr (floor (- (max mr bw) (min mr bw))))
                  (offset (+ prefix-pixel-width ml))
+                 (cands (corfu-pixel-perfect--hide-annotation-maybe cands curr))
                  (lines (corfu-pixel-perfect--format-candidates cands curr ml mr)))
       (corfu--popup-show pos offset nil lines curr lo bar))))
 
@@ -226,12 +238,7 @@ OFF is the number of pixels on graphical displays or columns in the terminal to
 move the popup to the left.
 The current candidate CURR is highlighted.
 A scroll bar is displayed from LO to LO+BAR."
-  (pcase-let ((`(,content-width . ,content-height)
-               (if (memq major-mode corfu-pixel-perfect-ignore-annotation-modes)
-                   (with-temp-buffer
-                     (setq-local buffer-invisibility-spec nil)
-                     (corfu--string-pixel-size (string-join lines "\n")))
-                 (corfu--string-pixel-size (string-join lines "\n"))))
+  (pcase-let ((`(,content-width . ,content-height) (corfu--string-pixel-size (string-join lines "\n")))
               (lh (default-line-height)))
     (with-current-buffer (corfu--make-buffer " *corfu*")
       (let* ((ch (default-line-height))
