@@ -111,6 +111,25 @@ if you hate it, I think there's enough performance headroom in the usual case to
 make the ellipsis less intrusive.
 
 
+### VS Code style annotations
+
+![VS Code style annotations](screenshoots/vs-code-style-annotation.png)
+
+This new option offers an even more distraction-free experience for those who
+like to peruse the names of the candidates first before narrowing down a
+selection by looking at their signatures.
+
+To enable this feature, put the major mode(s) you'd like to hide annotations into
+`corfu-pixel-perfect-ignore-annotation-modes`.
+
+``` emacs-lisp
+(use-package corfu-pixel-perfect
+  :custom
+  (corfu-pixel-perfect-ignore-annotation-modes '(emacs-lisp-mode)))
+```
+
+
+
 ## Future improvements
 
 ### Much simpler terminal mode

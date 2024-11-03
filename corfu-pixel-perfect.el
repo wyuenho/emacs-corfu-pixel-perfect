@@ -42,6 +42,21 @@
   :group 'corfu
   :prefix "corfu-pixel-perfect")
 
+(defcustom corfu-pixel-perfect-ignore-annotation-modes nil
+  "A list of major modes that should not show annotations."
+  :type '(repeat function))
+
+(defcustom corfu-pixel-perfect-current-annotation-only t
+  "Whether to show the annotation for the current selection.
+
+When used in combination with
+`corfu-pixel-perfect-ignore-annotation-modes', all the
+annotations will be hidden except for the current selection.
+
+When `corfu-pixel-perfect-ignore-annotation-modes' does not have
+an entry for the current major mode, this option has no effect."
+  :type 'boolean)
+
 (defcustom corfu-pixel-perfect-ellipsis nil
   "Whether to show ellipsis.
 
@@ -155,6 +170,21 @@ terminal."
                     marginr)
                 marginr)))))
 
+(defun corfu-pixel-perfect--hide-annotation-maybe (cands curr)
+  "Hide annotation conditionally.
+
+CANDS is a list of triples of candidate string, prefix and suffix (annotation).
+CURR is the index of the current selection."
+  (when (memq major-mode corfu-pixel-perfect-ignore-annotation-modes)
+    (cl-loop for triple in cands
+             with i = 0
+             do
+             (unless (eq i curr)
+               (let ((suffix (caddr triple)))
+                 (setf (caddr triple) (propertize suffix 'invisible t))))
+             (cl-incf i)))
+  cands)
+
 (defun corfu-pixel-perfect--scroll-bar-range ()
   "Return the range of the scroll bar.
 
@@ -176,13 +206,15 @@ range in a list with 2 elements, nil otherwise."
     (corfu--compute-scroll)
     (pcase-let* ((`(,lo ,bar) (corfu-pixel-perfect--scroll-bar-range))
                  (curr (- corfu--index corfu--scroll))
-                 (dcands (corfu--affixate
-                          (cl-loop repeat corfu-count
-                                   for c in (nthcdr corfu--scroll corfu--candidates)
-                                   collect (funcall corfu--hilit (substring c)))))
-                 (rcands (corfu-pixel-perfect--replace-newlines dcands))
-                 (prefix-pixel-width (string-pixel-width
-                                      (string-join (cl-loop for c in rcands collect (cadr c)) "\n")))
+                 (cands
+                  (corfu--affixate
+                   (cl-loop repeat corfu-count
+                            for c in (nthcdr corfu--scroll corfu--candidates)
+                            collect (funcall corfu--hilit (substring c)))))
+                 (cands (corfu-pixel-perfect--replace-newlines cands))
+                 (prefix-pixel-width
+                  (string-pixel-width
+                   (string-join (cl-loop for c in cands collect (cadr c)) "\n")))
                  (fw (default-font-width))
                  ;; Disable the left margin if there are prefixes
                  (ml (if (> prefix-pixel-width 0) 0 corfu-left-margin-width))
@@ -192,7 +224,8 @@ range in a list with 2 elements, nil otherwise."
                  (mr (max 0 (* fw corfu-right-margin-width)))
                  (mr (floor (- (max mr bw) (min mr bw))))
                  (offset (+ prefix-pixel-width ml))
-                 (lines (corfu-pixel-perfect--format-candidates rcands curr ml mr)))
+                 (cands (corfu-pixel-perfect--hide-annotation-maybe cands curr))
+                 (lines (corfu-pixel-perfect--format-candidates cands curr ml mr)))
       (corfu--popup-show pos offset nil lines curr lo bar))))
 
 (cl-defmethod corfu--popup-show :around (pos off _ lines
