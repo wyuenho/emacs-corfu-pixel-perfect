@@ -97,6 +97,19 @@ indicator."
                     (setf s (replace-regexp-in-string "[ \t]*\n[ \t]*" " " s))))
   cands)
 
+;; modified from `string-pixel-width' in subr-x.el
+(defun corfu--string-pixel-size (string)
+  "Return the size of STRING in pixels."
+  (if (zerop (length string))
+      0
+    (with-current-buffer (get-buffer-create " *corfu--string-pixel-size*")
+      (setq-local display-line-numbers nil)
+      (delete-region (point-min) (point-max))
+      (setq line-prefix nil
+            wrap-prefix nil)
+      (insert (propertize string 'line-prefix nil 'wrap-prefix nil))
+      (buffer-text-pixel-size nil nil t))))
+
 (defun corfu-pixel-perfect--format-candidates (cands curr ml mr)
   "Format annotated CANDS.
 CURR is index of the currently selected candidate.
@@ -179,21 +192,20 @@ range in a list with 2 elements, nil otherwise."
                  (mr (max 0 (* fw corfu-right-margin-width)))
                  (mr (floor (- (max mr bw) (min mr bw))))
                  (offset (+ prefix-pixel-width ml))
-                 (lines (corfu-pixel-perfect--format-candidates rcands curr ml mr))
-                 (content-width (string-pixel-width (string-join lines "\n"))))
-      (corfu--popup-show pos offset content-width lines curr lo bar))))
+                 (lines (corfu-pixel-perfect--format-candidates rcands curr ml mr)))
+      (corfu--popup-show pos offset nil lines curr lo bar))))
 
-(cl-defmethod corfu--popup-show :around (pos off content-width lines
+(cl-defmethod corfu--popup-show :around (pos off _ lines
                                              &context (corfu-pixel-perfect-mode (eql t))
                                              &optional curr lo bar)
   "Show LINES as popup at POS - PW.
 OFF is the number of pixels on graphical displays or columns in the terminal to
 move the popup to the left.
-CONTENT-WIDTH is the number of pixels on graphical displays or columns in the
-terminal required to display the longest line in LINES.
 The current candidate CURR is highlighted.
 A scroll bar is displayed from LO to LO+BAR."
-  (let ((lh (default-line-height)))
+  (pcase-let ((`(,content-width . ,content-height)
+               (corfu--string-pixel-size (string-join lines "\n")))
+              (lh (default-line-height)))
     (with-current-buffer (corfu--make-buffer " *corfu*")
       (let* ((ch (default-line-height))
              (cw (default-font-width))
@@ -212,8 +224,8 @@ A scroll bar is displayed from LO to LO+BAR."
              (pos (posn-x-y pos))
              ;; XXX HACK: Minimum popup height must be at least 1 line of the
              ;; parent frame (gh:minad/corfu#261).
-             (height (max lh (* (length lines) ch)))
-             (edge (window-inside-pixel-edges))
+             (height (max lh content-height))
+             (edge (window-body-pixel-edges))
              (border (alist-get 'internal-border-width corfu--frame-parameters))
              (x (max 0 (min (+ (car edge) (- (or (car pos) 0) off border))
                             (- (frame-pixel-width) width))))
