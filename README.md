@@ -19,27 +19,15 @@ But why would you like to use anything other than a monospaced font? I hear you
 ask.
 
 I very much like monospaced fonts, in fact I like them so much, I'd like to use
-more than one kind of monospaced fonts, or a different width or slant variant of
-the same monospaced font, or occasionally commit the sin of using a variable
-font for the less important things such as annotation. Unfortunately, even in
-2024, these font choices are still impossible to use in many Emacs packages,
-because they still treat every glyph as having the exact same size, one such
-example is `corfu`.
-
-Would you rather have this?
-
-![corfu](screenshots/corfu.png)
-
-
-Or something like Intellij's?
-
-![Intellij](screenshots/intellij.png)
-
+more than one kind of monospaced fonts, or a different height of the same
+monospaced font, or occasionally commit the sin of using a variable font for the
+less important things such as annotation. Unfortunately, even in 2024, these
+font adjustments are still impossible to use in many Emacs packages, because
+they still treat every glyph as having the exact same size, one such example is
+`corfu`.
 
 With `corfu-pixel-perfect`, you can finally have perfect pixel alignment in your
 favorite auto-completion popup.
-
-![corfu-pixel-perfect](screenshots/corfu-pixel-perfect.png)
 
 
 ## Usage
