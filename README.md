@@ -112,6 +112,7 @@ into `corfu-pixel-perfect-ignore-annotation-modes`.
 
 ``` emacs-lisp
 (use-package corfu-pixel-perfect
+  ...snip...
   :custom
   (corfu-pixel-perfect-ignore-annotation-modes '(emacs-lisp-mode)))
 ```
