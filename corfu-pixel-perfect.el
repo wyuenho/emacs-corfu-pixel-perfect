@@ -79,7 +79,8 @@ indicator."
     (setq-local buffer-display-table corfu-pixel-perfect--display-table
                 left-fringe-width nil
                 right-fringe-width nil
-                fringe-indicator-alist nil))
+                fringe-indicator-alist nil)
+    (add-to-invisibility-spec 'corfu-pixel-perfect))
   buffer)
 
 (defun corfu-pixel-perfect--make-frame-advice (fn &rest args)
@@ -163,27 +164,17 @@ terminal."
               (propertize " " 'display `(space :align-to (,(+ ml pw cw
                                                               (- width (+ pw cw sw))
                                                               (- sw (string-pixel-width suffix))))))
-              suffix
+
+              (if (and (memq major-mode corfu-pixel-perfect-ignore-annotation-modes)
+                       (not (eq i curr)))
+                  (propertize suffix 'invisible 'corfu-pixel-perfect)
+                suffix)
+
               (if (and (= i curr) marginr)
                   (let ((marginr (substring marginr)))
                     (add-face-text-property 0 (length marginr) 'corfu-current t marginr)
                     marginr)
                 marginr)))))
-
-(defun corfu-pixel-perfect--hide-annotation-maybe (cands curr)
-  "Hide annotation conditionally.
-
-CANDS is a list of triples of candidate string, prefix and suffix (annotation).
-CURR is the index of the current selection."
-  (when (memq major-mode corfu-pixel-perfect-ignore-annotation-modes)
-    (cl-loop for triple in cands
-             with i = 0
-             do
-             (unless (eq i curr)
-               (let ((suffix (caddr triple)))
-                 (setf (caddr triple) (propertize suffix 'invisible t))))
-             (cl-incf i)))
-  cands)
 
 (defun corfu-pixel-perfect--scroll-bar-range ()
   "Return the range of the scroll bar.
@@ -224,7 +215,6 @@ range in a list with 2 elements, nil otherwise."
                  (mr (max 0 (* fw corfu-right-margin-width)))
                  (mr (floor (- (max mr bw) (min mr bw))))
                  (offset (+ prefix-pixel-width ml))
-                 (cands (corfu-pixel-perfect--hide-annotation-maybe cands curr))
                  (lines (corfu-pixel-perfect--format-candidates cands curr ml mr)))
       (corfu--popup-show pos offset nil lines curr lo bar))))
 
@@ -237,7 +227,11 @@ move the popup to the left.
 The current candidate CURR is highlighted.
 A scroll bar is displayed from LO to LO+BAR."
   (pcase-let ((`(,content-width . ,content-height)
-               (corfu--string-pixel-size (string-join lines "\n")))
+               (if (memq major-mode corfu-pixel-perfect-ignore-annotation-modes)
+                   (with-temp-buffer
+                     (setq-local buffer-invisibility-spec nil)
+                     (corfu--string-pixel-size (string-join lines "\n")))
+                 (corfu--string-pixel-size (string-join lines "\n"))))
               (lh (default-line-height)))
     (with-current-buffer (corfu--make-buffer " *corfu*")
       (let* ((ch (default-line-height))
