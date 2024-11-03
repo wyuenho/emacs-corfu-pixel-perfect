@@ -192,7 +192,7 @@ performance reasons :( Emacs is lovely like that.
 3. `corfu-bar-width` is no longer ignored when it is larger than
    `corfu-right-margin-width`.
 4. Various negative width and divide by zero issues.
-5. Popup height is also now pixel perfect
+5. Popup height is also now pixel perfect.
 
 
 I'll document in detail all of these relatively minor issues in due course.
