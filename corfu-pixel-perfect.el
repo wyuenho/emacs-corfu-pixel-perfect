@@ -166,7 +166,7 @@ terminal."
                                                               (- sw (string-pixel-width suffix))))))
 
               (if (and (memq major-mode corfu-pixel-perfect-ignore-annotation-modes)
-                       (not (eq i curr)))
+                       (/= i curr))
                   (propertize suffix 'invisible 'corfu-pixel-perfect)
                 suffix)
 
