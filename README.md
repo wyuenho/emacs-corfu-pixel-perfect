@@ -166,9 +166,9 @@ Currently `corfu-min-width` defaults to 15, which is too low for most cases, and
 most cases, the popup width flickers wildly between 85 columns as you scroll,
 depending on which programming languages you work with. However, since different
 programming languages differ in verbosity, you don't really know what the best
-widths to set are, so you end up constantly messing with these width
-variables. This situation is exacerbated by the fact `corfu` does not remember
-the size after resizing the popup with a mouse.
+widths to set are, so you end up constantly messing with these variables. This
+situation is exacerbated by the fact `corfu` does not remember the size after
+resizing the popup with a mouse.
 
 There must be some simple clever math you can do to guess a sensible static
 width depending on the major mode and past completion invocations. Or perhaps,
@@ -301,9 +301,9 @@ publishing this new package.
   truncates, without allowing the user to expand the popup frame with a mouse to
   see the clipped annotation. While this is admittedly an improvement, this
   right-align-at-best-effort approach still causes problems for downstream Elisp
-  programs due to its irregularity, nevermind the result is just as distracting
-  when `corfu-max-width` is lowered so more lines are truncated in seemingly
-  random order while the rest has the annotation floating in inexplicably. An
+  programs due to its irregularity, nevermind the result is just as distracting.
+  When `corfu-max-width` is lowered, more lines are truncated in seemingly
+  random order while the rest has their annotations floating in inexplicably. An
   example can be seen [here](#much-simpler-terminal-mode).
 
 
