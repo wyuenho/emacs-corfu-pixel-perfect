@@ -161,7 +161,8 @@ range in a list with 2 elements, nil otherwise."
   "Show candidates popup at POS."
   (when (> corfu--total 0)
     (corfu--compute-scroll)
-    (pcase-let* ((curr (- corfu--index corfu--scroll))
+    (pcase-let* ((`(,lo ,bar) (corfu-pixel-perfect--scroll-bar-range))
+                 (curr (- corfu--index corfu--scroll))
                  (dcands (corfu--affixate
                           (cl-loop repeat corfu-count
                                    for c in (nthcdr corfu--scroll corfu--candidates)
@@ -174,14 +175,13 @@ range in a list with 2 elements, nil otherwise."
                  (ml (if (> prefix-pixel-width 0) 0 corfu-left-margin-width))
                  (ml (max 0 (ceiling (* fw ml))))
                  ;; Adjust right margin width according to scroll bar width
-                 (bw (max 0 (* fw corfu-bar-width)))
+                 (bw (if lo (max 0 (* fw corfu-bar-width)) 0))
                  (mr (max 0 (* fw corfu-right-margin-width)))
                  (mr (floor (- (max mr bw) (min mr bw))))
                  (offset (+ prefix-pixel-width ml))
                  (lines (corfu-pixel-perfect--format-candidates rcands curr ml mr))
                  (content-width (string-pixel-width (string-join lines "\n"))))
-      (apply 'corfu--popup-show pos offset content-width lines curr
-             (corfu-pixel-perfect--scroll-bar-range)))))
+      (corfu--popup-show pos offset content-width lines curr lo bar))))
 
 (cl-defmethod corfu--popup-show :around (pos off content-width lines
                                              &context (corfu-pixel-perfect-mode (eql t))
