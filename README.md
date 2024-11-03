@@ -116,8 +116,8 @@ make the ellipsis less intrusive.
 ![VS Code style annotations](screenshots/vs-code-style-annotation.png)
 
 This new option offers an even more distraction-free experience for those who
-like to peruse the names of the candidates first before narrowing down a
-selection by looking at their signatures.
+like to peruse the names of the candidates before narrowing down a selection by
+their signatures.
 
 To enable this feature, put the major mode(s) you'd like to hide annotations into
 `corfu-pixel-perfect-ignore-annotation-modes`.
