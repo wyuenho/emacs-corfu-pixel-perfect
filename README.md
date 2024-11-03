@@ -80,10 +80,7 @@ favorite auto-completion popup.
 
 | corfu | corfu-pixel-perfect |
 |-------|---------------------|
-|![Emoji Before](screenshots/emoji-before.png)|![Emoji After](screenshots/emoji-after.png) [^1]|
-
-
-[^1]: The height is still misaligned due to a similar treatment as default font width to line height, this will probably be addressed at a later time.
+|![Emoji Before](screenshots/emoji-before.png)|![Emoji After](screenshots/emoji-after.png)|
 
 
 ## New Features
@@ -270,9 +267,9 @@ that requires Emacs >= 29, as demonstrated in a separate PR and here, 3)
 offering an option for the users to opt into, and most centrally, 4) around a
 collaborator claiming the following as a feature that regressed, despite the
 author acknowledging it was never intended, and both agreeing it was not ideal,
-but the author still insisting "the current alignment works better". [^2]
+but the author still insisting "the current alignment works better". [^1]
 
-![Airquote Feature](screenshots/airquote-feature.png) [^3]
+![Airquote Feature](screenshots/airquote-feature.png) [^2]
 
 
 There are a number of other reasons for the rejection of the change I'm sure,
@@ -284,7 +281,7 @@ multiple medium size changes. This is my mistake, of which I'm fixing by
 publishing this new package.
 
 
-[^2]: While I do see some utility in this coincidence due to higher information
+[^1]: While I do see some utility in this coincidence due to higher information
   density, after some consideration, I have decided against it and its
   right-align-at-best-effort variant for now. The reason is downstream Elisp
   programs rely on the output of `corfu--format-candidate`. It's easy to pad and
@@ -296,7 +293,7 @@ publishing this new package.
   the formatted output simple and predictable is the best course of action as
   the API remains composable.
 
-[^3]: Which has since been altered a few days after the PR was closed, to take a
+[^2]: Which has since been altered a few days after the PR was closed, to take a
   similar approach first used in this package, but still programmatically
   truncates, without allowing the user to expand the popup frame with a mouse to
   see the clipped annotation. While this is admittedly an improvement, this
