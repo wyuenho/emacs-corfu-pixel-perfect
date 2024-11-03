@@ -306,12 +306,6 @@ A scroll bar is displayed from LO to LO+BAR."
         (with-current-buffer (current-buffer)
           (setq corfu--frame (corfu--make-frame corfu--frame x y width height)))))))
 
-(cl-defmethod corfu--exhibit :around (&context (corfu-pixel-perfect-mode (eql t)) &optional auto)
-  (cl-flet ((corfu--popup-show
-              (pos off _width lines &optional curr lo bar)
-              (corfu--popup-show pos off (string-pixel-width (car lines)) lines curr lo bar)))
-    (cl-call-next-method auto)))
-
 (defvar corfu-pixel-perfect--corfu--frame-parameters nil)
 
 ;;;###autoload
