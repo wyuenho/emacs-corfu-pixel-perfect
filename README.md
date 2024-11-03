@@ -76,7 +76,7 @@ favorite auto-completion popup.
 |![Height Before](screenshots/diff-height-before.png)|![Suffix After](screenshots/diff-height-after.png)|
 
 
-### Emoji causing misalignment due to font width differences
+### Emoji causing misalignment and erroneous popup height calculation
 
 | corfu | corfu-pixel-perfect |
 |-------|---------------------|
@@ -192,6 +192,7 @@ performance reasons :( Emacs is lovely like that.
 3. `corfu-bar-width` is no longer ignored when it is larger than
    `corfu-right-margin-width`.
 4. Various negative width and divide by zero issues.
+5. Popup height is also now pixel perfect
 
 
 I'll document in detail all of these relatively minor issues in due course.
