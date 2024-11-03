@@ -4,7 +4,7 @@
 
 ;; Author: Jimmy Yuen Ho Wong <wyuenho@gmail.com>
 ;; Created: 2024-10-30
-;; Version: 0.1
+;; Version: 0.3
 ;; Package-Requires: ((emacs "29.1") (corfu "1.5"))
 ;; URL: https://github.com/wyuenho/emacs-corfu-pixel-perfect
 ;; Keywords: abbrev, convenience, matching, completion, text
