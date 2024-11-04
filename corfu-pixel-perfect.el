@@ -114,7 +114,7 @@ indicator."
   cands)
 
 ;; modified from `string-pixel-width' in subr-x.el
-(defun corfu--string-pixel-size (string)
+(defun corfu-pixel-perfect--string-pixel-size (string)
   "Return the size of STRING in pixels.
 
 The return value is a `cons' cell where the `car' is the width and
@@ -155,7 +155,7 @@ MR is the left margin padding in pixels on graphical displays or columns on the
 terminal."
   (let* ((cw (string-pixel-width (string-join (cl-loop for x in cands collect (car x)) "\n")))
          (pw (string-pixel-width (string-join (cl-loop for x in cands collect (cadr x)) "\n")))
-         (sw (car (corfu--string-pixel-size (string-join (cl-loop for x in cands collect (caddr x)) "\n"))))
+         (sw (car (corfu-pixel-perfect--string-pixel-size (string-join (cl-loop for x in cands collect (caddr x)) "\n"))))
          (fw (default-font-width))
          (width (max (+ pw cw sw) (* fw corfu-min-width)))
          (marginl (if (> ml 0) (propertize " " 'display `(space :width (,ml)))))
@@ -183,7 +183,7 @@ terminal."
               cand
               (propertize " " 'display `(space :align-to (,(+ ml pw cw
                                                               (- width (+ pw cw sw))
-                                                              (- sw (car (corfu--string-pixel-size suffix)))))))
+                                                              (- sw (car (corfu-pixel-perfect--string-pixel-size suffix)))))))
               suffix
               (if (and (= i curr) marginr)
                   (let ((marginr (substring marginr)))
@@ -242,7 +242,8 @@ OFF is the number of pixels on graphical displays or columns in the terminal to
 move the popup to the left.
 The current candidate CURR is highlighted.
 A scroll bar is displayed from LO to LO+BAR."
-  (pcase-let ((`(,content-width . ,content-height) (corfu--string-pixel-size (string-join lines "\n")))
+  (pcase-let ((`(,content-width . ,content-height)
+               (corfu-pixel-perfect--string-pixel-size (string-join lines "\n")))
               (lh (default-line-height)))
     (with-current-buffer (corfu--make-buffer " *corfu*")
       (let* ((ch (default-line-height))
