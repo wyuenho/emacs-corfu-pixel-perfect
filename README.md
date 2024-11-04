@@ -218,8 +218,8 @@ are you sure you need an auto-completion UI? If your answer is yes to both
 questions, then read on.
 
 On a MacBook Pro M1 Pro from 2021, a benchmark is conducted on Emacs 29 compiled
-with `--with-native-compilation=aot` turned on and my daily configuration
-consisting 177 installed packages with over 2 dozens functions in
+with `--with-native-compilation=aot` launched without any flags. My daily
+configuration consists of 177 installed packages with over 2 dozens functions in
 `post-command-hook`. Using all default settings for `corfu` and
 `corfu-pixel-perfect` except a rather extreme `corfu-count` of 100,
 `corfu--candidates-popup` is called with 100 completion strings each having 100
