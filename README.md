@@ -210,9 +210,19 @@ I'll document in detail all of these relatively minor issues in due course.
 
 ## Performance
 
-A benchmark using all default settings except a rather extreme `corfu-count` of
-100 and 100 completion strings with 100 glyphs is run on a MacBook Pro M1 Pro
-from 2021 720 times per run for 10 runs.
+Before you read on, I would like you to ask yourself a question - how many times
+per second can you type a letter, scroll and read through a list of selections,
+make a selection decision, and then type enter? If you can do this more than a
+few times per second continuously for more than a couple of seconds at a time,
+are you sure you need an auto-completion UI? If your answer is yes to both
+questions, then read on.
+
+On a MacBook Pro M1 Pro from 2021, a benchmark is conducted using my usual Emacs
+configuration which consists of 177 installed packages with over 2 dozens
+functions in my `post-command-hook`. Using all default settings for `corfu` and
+`corfu-pixel-perfect` except a rather extreme `corfu-count` of 100,
+`corfu--candidates-popup` is called with 100 completion strings each having 100
+glyphs 720 times per trial for 10 trials.
 
 With vanilla `corfu`, it finishes in around 7.87s to 8.23s, equivalent to around
 89 FPS. `corfu-pixel-perfect`finishes in 8.22s to 8.57s, equivalent to around 85
