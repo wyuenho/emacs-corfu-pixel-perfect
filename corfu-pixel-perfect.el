@@ -160,12 +160,21 @@ terminal."
                (string-join (cl-loop for x in cands collect (caddr x)) "\n"))))
          (fw (default-font-width))
          (width (max (+ pw cw sw) (* fw corfu-min-width)))
-         (marginl (if (> ml 0) (propertize " " 'display `(space :width (,ml)))))
-         (marginr (if (> mr 0) (propertize " " 'display `(space :width (,mr))))))
+         (marginl (propertize " " 'display `(space :width (,ml))))
+         (marginr (propertize " " 'display `(space :width (,mr))))
+         (current-marginl (substring marginl))
+         (current-marginr (substring marginr)))
+
+    (add-face-text-property 0 (length current-marginl) 'corfu-current t current-marginl)
+    (add-face-text-property 0 (length current-marginr) 'corfu-current t current-marginr)
 
     (cl-loop for (cand prefix suffix) being the elements of cands
              using (index i)
              do
+             (setq cand (substring cand)
+                   prefix (substring prefix)
+                   suffix (substring suffix))
+
              ;; `corfu-current' may affect frame-width too
              (when (= i curr)
                (cl-loop for s in (list cand prefix suffix)
@@ -175,14 +184,14 @@ terminal."
              ;; `string-pixel-width' results
              collect
              (concat
-              (if (and (= i curr) marginl)
-                  (let ((marginl (substring marginl)))
-                    (add-face-text-property 0 (length marginl) 'corfu-current t marginl)
-                    marginl)
-                marginl)
+              (if (= i curr) current-marginl marginl)
+
               prefix
+
               (propertize " " 'display `(space :align-to (,(+ ml pw))))
+
               cand
+
               (propertize " " 'display `(space :align-to (,(+ ml pw cw
                                                               (- width (+ pw cw sw))
                                                               (- sw
@@ -190,11 +199,8 @@ terminal."
                                                                   (corfu-pixel-perfect--string-pixel-size
                                                                    suffix)))))))
               suffix
-              (if (and (= i curr) marginr)
-                  (let ((marginr (substring marginr)))
-                    (add-face-text-property 0 (length marginr) 'corfu-current t marginr)
-                    marginr)
-                marginr)))))
+
+              (if (= i curr) current-marginr marginr)))))
 
 (defun corfu-pixel-perfect--scroll-bar-range ()
   "Return the range of the scroll bar.
