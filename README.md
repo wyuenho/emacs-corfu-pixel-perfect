@@ -152,7 +152,7 @@ annotations may not suit every situation. This is especially true when working
 in a statically typed programming language such as Rust or TypeScript in LSP
 mode. The signature of a function is often just as, if not more important than
 the name. If a few overly long functions such as
-`myComponetSuperSecret__DangerouslySetInnerHTML` causes the candidate column to
+`myComponentSuperSecret__DangerouslySetInnerHTML` causes the candidate column to
 suddenly increase in width greatly, the function signatures may overflow behind
 the window due to `corfu-max-width` being exceeded. It is perhaps preferrable to
 first truncate the candidates in this situation.
