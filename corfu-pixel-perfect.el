@@ -155,7 +155,9 @@ MR is the left margin padding in pixels on graphical displays or columns on the
 terminal."
   (let* ((cw (string-pixel-width (string-join (cl-loop for x in cands collect (car x)) "\n")))
          (pw (string-pixel-width (string-join (cl-loop for x in cands collect (cadr x)) "\n")))
-         (sw (car (corfu-pixel-perfect--string-pixel-size (string-join (cl-loop for x in cands collect (caddr x)) "\n"))))
+         (sw (car
+              (corfu-pixel-perfect--string-pixel-size
+               (string-join (cl-loop for x in cands collect (caddr x)) "\n"))))
          (fw (default-font-width))
          (width (max (+ pw cw sw) (* fw corfu-min-width)))
          (marginl (if (> ml 0) (propertize " " 'display `(space :width (,ml)))))
@@ -183,7 +185,10 @@ terminal."
               cand
               (propertize " " 'display `(space :align-to (,(+ ml pw cw
                                                               (- width (+ pw cw sw))
-                                                              (- sw (car (corfu-pixel-perfect--string-pixel-size suffix)))))))
+                                                              (- sw
+                                                                 (car
+                                                                  (corfu-pixel-perfect--string-pixel-size
+                                                                   suffix)))))))
               suffix
               (if (and (= i curr) marginr)
                   (let ((marginr (substring marginr)))
@@ -212,11 +217,10 @@ range in a list with 2 elements, nil otherwise."
     (corfu--compute-scroll)
     (pcase-let* ((`(,lo ,bar) (corfu-pixel-perfect--scroll-bar-range))
                  (curr (- corfu--index corfu--scroll))
-                 (cands
-                  (corfu--affixate
-                   (cl-loop repeat corfu-count
-                            for c in (nthcdr corfu--scroll corfu--candidates)
-                            collect (funcall corfu--hilit (substring c)))))
+                 (cands (cl-loop repeat corfu-count
+                                 for c in (nthcdr corfu--scroll corfu--candidates)
+                                 collect (funcall corfu--hilit (substring c))))
+                 (cands (corfu--affixate cands))
                  (cands (corfu-pixel-perfect--replace-newlines cands))
                  (prefix-pixel-width
                   (string-pixel-width
