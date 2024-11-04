@@ -117,8 +117,8 @@ into `corfu-pixel-perfect-ignore-annotation-modes`.
   (corfu-pixel-perfect-ignore-annotation-modes '(emacs-lisp-mode)))
 ```
 
-As a bonus, this feature actually *increases* performance to slightly faster
-than vanilla `corfu`.
+As a bonus, this feature actually *increases* performance to be as fast as
+vanilla `corfu`.
 
 
 ## Future improvements
