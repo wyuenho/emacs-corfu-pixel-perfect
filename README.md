@@ -217,7 +217,8 @@ few times per second continuously for more than a couple of seconds at a time,
 are you sure you need an auto-completion UI? If your answer is yes to both
 questions, then read on.
 
-On a MacBook Pro M1 Pro from 2021, a benchmark is conducted using my usual Emacs
+On a MacBook Pro M1 Pro from 2021, a benchmark is conducted using on Emacs 29
+compiled with `--with-native-compilation=aot` turned on and my daily
 configuration which consists of 177 installed packages with over 2 dozens
 functions in my `post-command-hook`. Using all default settings for `corfu` and
 `corfu-pixel-perfect` except a rather extreme `corfu-count` of 100,
