@@ -106,11 +106,11 @@ indicator."
   (let ((result (cl-call-next-method cands)))
     (cdr result)))
 
-(defun corfu-pixel-perfect--replace-newlines (cands)
-  "Replace newlines in candidates CANDS."
+(defun corfu-pixel-perfect--trim (cands)
+  "Trim white space in candidates CANDS."
   (cl-loop for c in cands do
            (cl-loop for s in-ref c do
-                    (setf s (replace-regexp-in-string "[ \t]*\n[ \t]*" " " s))))
+                    (setf s (string-trim s))))
   cands)
 
 ;; modified from `string-pixel-width' in subr-x.el
@@ -184,21 +184,16 @@ terminal."
              collect
              (concat
               (if (= i curr) current-marginl marginl)
-
               prefix
-
               (propertize " " 'display `(space :align-to (,(+ ml pw))))
-
               cand
-
-              (propertize " " 'display `(space :align-to (,(+ ml pw cw
+              (propertize " " 'display `(space :align-to (,(+ ml pw cw (if (> (length suffix) 0) fw 0)
                                                               (- width (+ pw cw sw))
                                                               (- sw
                                                                  (car
                                                                   (corfu-pixel-perfect--string-pixel-size
                                                                    suffix)))))))
               suffix
-
               (if (= i curr) current-marginr marginr)))))
 
 (defun corfu-pixel-perfect--scroll-bar-range ()
@@ -226,7 +221,7 @@ range in a list with 2 elements, nil otherwise."
                                  for c in (nthcdr corfu--scroll corfu--candidates)
                                  collect (funcall corfu--hilit (substring c))))
                  (cands (corfu--affixate cands))
-                 (cands (corfu-pixel-perfect--replace-newlines cands))
+                 (cands (corfu-pixel-perfect--trim cands))
                  (prefix-pixel-width
                   (string-pixel-width
                    (string-join (cl-loop for c in cands collect (cadr c)) "\n")))
