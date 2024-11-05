@@ -33,6 +33,7 @@
 ;;; Code:
 
 (require 'corfu)
+(require 'mule-util)
 (eval-when-compile
   (require 'cl-lib)
   (require 'subr-x))
@@ -60,10 +61,34 @@ an entry for the current major mode, this option has no effect."
 (defcustom corfu-pixel-perfect-ellipsis nil
   "Whether to show ellipsis.
 
-If t, the bar is shown on the fringe with no truncation indicator.
-If nil, the bar is shown on the margin with ellipsis as the truncation
-indicator."
-  :type 'boolean)
+If nil, the bar is shown on the fringe with no truncation
+indicator.
+
+If it's the symbol `fast', the bar is shown on the margin with
+ellipsis as the truncation indicator.  When `corfu-max-width' is
+less than the width of the content, a column of ellipsis will
+appear to indicate additional content is clipped behind the popup
+frame at all times. This is the fastest option if you just want
+some truncation indication.
+
+If it's the symbol `annotation-first', the behavior is similar to
+`fast', but instead of a column of ellipsis at all times, when
+the end of the candidate column approaches the right side of the
+popup frame, ellipsis will start replacing the elided portion
+from the longest candidate onwards until `corfu-min-width' is
+reached.  The bar is back on the fringe when you use this option.
+
+If it's the symbol `candidate-first', when `corfu-max-width' is
+less the width of the content, the candidate column will be the
+first to start eliding.  Ellipsis will start replacing the elided
+portion from the longest candidate onwards, then the annotations,
+until `corfu-min-width' is reached.  The bar is back on the
+fringe when you use this option."
+  :local t
+  :type '(choice (const :tag "Fast" fast)
+                 (const :tag "Annotation first" annotation-first)
+                 (const :tag "Candidate first" candidate-first)
+                 (const :tag "None" nil)))
 
 (define-fringe-bitmap 'corfu-pixel-perfect-scroll-bar [])
 
@@ -71,7 +96,7 @@ indicator."
   (let ((dt (make-display-table)))
     (set-display-table-slot dt 'truncation ?\x2026)
     dt)
-  "Truncation ellipsis when `corfu-pixel-perfect-ellipsis' is t")
+  "Truncation ellipsis when `corfu-pixel-perfect-ellipsis' is `fast'")
 
 (defun corfu-pixel-perfect--make-buffer-advice (buffer)
   "Put a display table with an ellipsis on BUFFER."
@@ -146,6 +171,82 @@ CURR is the index of the current selection."
              (cl-incf i)))
   cands)
 
+(defun corfu-pixel-perfect--truncate-string-to-pixel-width (str width)
+  "Truncate string STR to WIDTH.
+WIDTH is in pixels. If the string is longer than width when
+rendered, it is truncated with the last character(s) replaced
+with the result of `truncate-string-ellipsis'. If shorter,
+returns an empty string."
+  (if (> (string-pixel-width str) width)
+      (let* ((glyphs (string-glyph-split str))
+             (glyph-width (string-pixel-width (car glyphs)))
+             (face (and glyphs (get-text-property 0 'face (car (last glyphs)))))
+             (ellipsis (apply 'propertize (truncate-string-ellipsis) (if face `(face ,face))))
+             (ellipsis-width (string-pixel-width ellipsis))
+             result)
+        (while (and glyphs (<= glyph-width width))
+          (push (pop glyphs) result)
+          (setq width (- width glyph-width)
+                glyph-width (string-pixel-width (car glyphs))))
+
+        (when (and glyphs result) ;; truncated
+          (while (and result (> ellipsis-width width))
+            (push (pop result) glyphs)
+            (setq width (+ width glyph-width)
+                  glyph-width (string-pixel-width (car result))))
+          (push ellipsis result))
+
+        (string-join (nreverse result)))
+    str))
+
+(defun corfu-pixel-perfect--truncate-from-annotation-maybe (cands)
+  "Truncate candidates CANDS from the annotations column first if necessary."
+  (when (eq corfu-pixel-perfect-ellipsis 'annotation-first)
+    (let* ((cw (string-pixel-width (string-join (cl-loop for x in cands collect (car x)) "\n")))
+           (pw (string-pixel-width (string-join (cl-loop for x in cands collect (cadr x)) "\n")))
+           (sw (string-pixel-width (string-join (cl-loop for x in cands collect (caddr x)) "\n")))
+           (width (+ pw cw sw))
+           (fw (default-font-width))
+           (min-width (ceiling (* fw corfu-min-width)))
+           (max-width (ceiling (* fw (min (- (frame-width) 4) corfu-max-width))))
+           (adjusted-cw cw)
+           (adjusted-sw sw))
+
+      (when (> width max-width)
+        (setq adjusted-sw (max 0 (- sw (- width max-width)))
+              width (+ pw cw adjusted-sw)))
+
+      (when (< width min-width)
+        (setq adjusted-sw (+ adjusted-sw (- min-width width))
+              width (+ pw cw adjusted-sw)))
+
+      (when (> width max-width)
+        (setq adjusted-cw (max 0 (- cw (- width max-width)))
+              width (+ pw adjusted-cw adjusted-sw)))
+
+      (when (< width min-width)
+        (setq adjusted-cw (+ adjusted-cw (- min-width width))
+              width (+ pw adjusted-cw adjusted-sw)))
+
+      (cl-loop for x in-ref cands
+               do
+               (cond ((and (< adjusted-cw cw) (> adjusted-cw 0))
+                      (setf (car x) (corfu-pixel-perfect--truncate-string-to-pixel-width (car x) adjusted-cw)))
+                     ((= adjusted-cw 0)
+                      (setf (car x) "")))
+
+               (cond ((and (< adjusted-sw sw) (> adjusted-sw 0))
+                      (setf (caddr x)
+                            (corfu-pixel-perfect--truncate-string-to-pixel-width
+                             (caddr x)
+                             ;; minus 1 glyph because of 1 space separation
+                             ;; between candidate and suffix is required if
+                             ;; suffix is non-empty
+                             (- adjusted-sw fw))))
+                     ((= adjusted-sw 0)
+                      (setf (caddr x) ""))))))
+  cands)
+
 (defun corfu-pixel-perfect--format-candidates (cands curr ml mr)
   "Format annotated CANDS.
 CURR is index of the currently selected candidate.
@@ -187,7 +288,10 @@ terminal."
               prefix
               (propertize " " 'display `(space :align-to (,(+ ml pw))))
               cand
-              (propertize " " 'display `(space :align-to (,(+ ml pw cw (if (> (length suffix) 0) fw 0)
+              (propertize " " 'display `(space :align-to (,(+ ml pw cw
+                                                              ;; suffix's been trimmed, separation needed
+                                                              ;; when suffix is non-empty
+                                                              (if (> (length suffix) 0) fw 0)
                                                               (- width (+ pw cw sw))
                                                               (- sw
                                                                  (car
@@ -231,6 +335,7 @@ range in a list with 2 elements, nil otherwise."
                  (ml (max 0 (ceiling (* fw ml))))
                  (mr (max 0 (ceiling (* fw corfu-right-margin-width))))
                  (offset (+ prefix-pixel-width ml))
+                 (cands (corfu-pixel-perfect--truncate-from-annotation-maybe cands))
                  (cands (corfu-pixel-perfect--hide-annotation-maybe cands curr))
                  (lines (corfu-pixel-perfect--format-candidates cands curr ml mr)))
       (corfu--popup-show pos offset nil lines curr lo bar))))
@@ -250,15 +355,18 @@ A scroll bar is displayed from LO to LO+BAR."
       (let* ((ch (default-line-height))
              (cw (default-font-width))
              (bw (max 0 (min 16 (ceiling (* cw corfu-bar-width)))))
-             (bw (if lo (if corfu-pixel-perfect-ellipsis
+             (bw (if lo (if (eq corfu-pixel-perfect-ellipsis 'fast)
                             (ceiling (* cw corfu-bar-width))
                           bw)
                    0))
              (width (+ bw
-                       ;; -4 because of margins and some additional safety
-                       (min (* cw (min (- (frame-width) 4) corfu-max-width)) content-width)))
+                       (if (memq corfu-pixel-perfect-ellipsis '(nil fast))
+                           ;; -4 because of margins and some additional safety
+                           (min (* cw (min (- (frame-width) 4) corfu-max-width)) content-width)
+                         ;; anything else the content is already truncated
+                         content-width)))
              (sbar (propertize " " 'display
-                               (if corfu-pixel-perfect-ellipsis
+                               (if (eq corfu-pixel-perfect-ellipsis 'fast)
                                    `((margin right-margin)
                                      ,(propertize " " 'face 'corfu-bar))
                                  '(right-fringe corfu-pixel-perfect-scroll-bar corfu-bar))))
@@ -279,7 +387,7 @@ A scroll bar is displayed from LO to LO+BAR."
 
           ;; Adjust margin and fringe when a scroll bar is needed
           (if lo
-              (if corfu-pixel-perfect-ellipsis
+              (if (eq corfu-pixel-perfect-ellipsis 'fast)
                   (setq-local right-margin-width 1
                               right-fringe-width nil)
                 (setq-local right-fringe-width bw
