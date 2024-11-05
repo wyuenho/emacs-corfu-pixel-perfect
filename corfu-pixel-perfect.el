@@ -171,12 +171,11 @@ terminal."
     (cl-loop for (cand prefix suffix) being the elements of cands
              using (index i)
              do
-             (setq cand (substring cand)
-                   prefix (substring prefix)
-                   suffix (substring suffix))
-
              ;; `corfu-current' may affect frame-width too
              (when (= i curr)
+               (setq cand (substring cand)
+                     prefix (substring prefix)
+                     suffix (substring suffix))
                (cl-loop for s in (list cand prefix suffix)
                         do (add-face-text-property 0 (length s) 'corfu-current t s)))
 
