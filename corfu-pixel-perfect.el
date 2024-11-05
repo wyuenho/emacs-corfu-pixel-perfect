@@ -234,10 +234,7 @@ range in a list with 2 elements, nil otherwise."
                  ;; Disable the left margin if there are prefixes
                  (ml (if (> prefix-pixel-width 0) 0 corfu-left-margin-width))
                  (ml (max 0 (ceiling (* fw ml))))
-                 ;; Adjust right margin width according to scroll bar width
-                 (bw (if lo (max 0 (* fw corfu-bar-width)) 0))
-                 (mr (max 0 (* fw corfu-right-margin-width)))
-                 (mr (floor (- (max mr bw) (min mr bw))))
+                 (mr (max 0 (ceiling (* fw corfu-right-margin-width))))
                  (offset (+ prefix-pixel-width ml))
                  (cands (corfu-pixel-perfect--hide-annotation-maybe cands curr))
                  (lines (corfu-pixel-perfect--format-candidates cands curr ml mr)))
@@ -257,10 +254,11 @@ A scroll bar is displayed from LO to LO+BAR."
     (with-current-buffer (corfu--make-buffer " *corfu*")
       (let* ((ch (default-line-height))
              (cw (default-font-width))
-             (mr (max 0 (* cw corfu-right-margin-width)))
-             (bw (max 0 (* cw corfu-bar-width)))
-             (bw (ceiling (min mr bw)))
-             (bw (if lo (if corfu-pixel-perfect-ellipsis cw bw) 0))
+             (bw (max 0 (min 16 (ceiling (* cw corfu-bar-width)))))
+             (bw (if lo (if corfu-pixel-perfect-ellipsis
+                            (ceiling (* cw corfu-bar-width))
+                          bw)
+                   0))
              (width (+ bw
                        ;; -4 because of margins and some additional safety
                        (min (* cw (min (- (frame-width) 4) corfu-max-width)) content-width)))
