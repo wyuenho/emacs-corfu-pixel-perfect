@@ -199,6 +199,52 @@ returns an empty string."
         (string-join (nreverse result)))
     str))
 
+(defun corfu-pixel-perfect--truncate-from-candidate-maybe (cands)
+  "Truncate candidates CANDS from the candidates column first if necessary."
+  (when (eq corfu-pixel-perfect-ellipsis 'candidate-first)
+    (let* ((cw (string-pixel-width (string-join (cl-loop for x in cands collect (car x)) "\n")))
+           (pw (string-pixel-width (string-join (cl-loop for x in cands collect (cadr x)) "\n")))
+           (sw (string-pixel-width (string-join (cl-loop for x in cands collect (caddr x)) "\n")))
+           (width (+ pw cw sw))
+           (fw (default-font-width))
+           (min-width (ceiling (* fw corfu-min-width)))
+           (max-width (ceiling (* fw (min (- (frame-width) 4) corfu-max-width))))
+           (adjusted-cw cw)
+           (adjusted-sw sw))
+
+      (when (> width max-width)
+        (setq adjusted-cw (max 0 (- cw (- width max-width)))
+              width (+ pw adjusted-cw sw)))
+
+      (when (< width min-width)
+        (setq adjusted-cw (+ adjusted-cw (- min-width width))
+              width (+ pw adjusted-cw sw)))
+
+      (when (> width max-width)
+        (setq adjusted-sw (max 0 (- sw (- width max-width)))
+              width (+ pw adjusted-cw adjusted-sw)))
+
+      (when (< width min-width)
+        (setq adjusted-sw (+ adjusted-sw (- min-width width))
+              width (+ pw adjusted-cw adjusted-sw)))
+
+      (when (and (< adjusted-cw cw) (> adjusted-cw 0))
+        (setq adjusted-cw (- adjusted-cw fw)))
+
+      (cl-loop for x in-ref cands
+               do
+               (cond ((and (< adjusted-cw cw) (> adjusted-cw 0))
+                      (setf (car x) (corfu-pixel-perfect--truncate-string-to-pixel-width (car x) adjusted-cw)))
+                     ((= adjusted-cw 0)
+                      (setf (car x) "")))
+
+               (cond ((and (< adjusted-sw sw) (> adjusted-sw 0))
+                      (setf (caddr x)
+                            (corfu-pixel-perfect--truncate-string-to-pixel-width (caddr x) adjusted-sw)))
+                     ((= adjusted-sw 0)
+                      (setf (caddr x) ""))))))
+  cands)
+
 (defun corfu-pixel-perfect--truncate-from-annotation-maybe (cands)
   "Truncate candidates CANDS from the annotations column first if necessary."
   (when (eq corfu-pixel-perfect-ellipsis 'annotation-first)
@@ -228,6 +274,9 @@ returns an empty string."
         (setq adjusted-cw (+ adjusted-cw (- min-width width))
               width (+ pw adjusted-cw adjusted-sw)))
 
+      (when (and (< adjusted-sw sw) (> adjusted-sw 0))
+        (setq adjusted-sw (- adjusted-sw fw)))
+
       (cl-loop for x in-ref cands
                do
                (cond ((and (< adjusted-cw cw) (> adjusted-cw 0))
@@ -236,13 +285,7 @@ returns an empty string."
                       (setf (car x) "")))
 
                (cond ((and (< adjusted-sw sw) (> adjusted-sw 0))
-                      (setf (caddr x)
-                            (corfu-pixel-perfect--truncate-string-to-pixel-width
-                             (caddr x)
-                             ;; minus 1 glyph because of 1 space separation
-                             ;; between candidate and suffix is required if
-                             ;; suffix is non-empty
-                             (- adjusted-sw fw))))
+                      (setf (caddr x) (corfu-pixel-perfect--truncate-string-to-pixel-width (caddr x) adjusted-sw)))
                      ((= adjusted-sw 0)
                       (setf (caddr x) ""))))))
   cands)
@@ -260,6 +303,7 @@ terminal."
               (corfu-pixel-perfect--string-pixel-size
                (string-join (cl-loop for x in cands collect (caddr x)) "\n"))))
          (fw (default-font-width))
+         (sw (if (> sw 0) (+ sw fw)))
          (width (max (+ pw cw sw) (* fw corfu-min-width)))
          (marginl (propertize " " 'display `(space :width (,ml))))
          (marginr (propertize " " 'display `(space :width (,mr))))
@@ -289,9 +333,7 @@ terminal."
               (propertize " " 'display `(space :align-to (,(+ ml pw))))
               cand
               (propertize " " 'display `(space :align-to (,(+ ml pw cw
-                                                              ;; suffix's been trimmed, separation needed
-                                                              ;; when suffix is non-empty
-                                                              (if (> (length suffix) 0) fw 0)
+                                                              ;; pads out the string to fit min width
                                                               (- width (+ pw cw sw))
                                                               (- sw
                                                                  (car
@@ -335,6 +377,7 @@ range in a list with 2 elements, nil otherwise."
                  (ml (max 0 (ceiling (* fw ml))))
                  (mr (max 0 (ceiling (* fw corfu-right-margin-width))))
                  (offset (+ prefix-pixel-width ml))
+                 (cands (corfu-pixel-perfect--truncate-from-candidate-maybe cands))
                  (cands (corfu-pixel-perfect--truncate-from-annotation-maybe cands))
                  (cands (corfu-pixel-perfect--hide-annotation-maybe cands curr))
                  (lines (corfu-pixel-perfect--format-candidates cands curr ml mr)))
