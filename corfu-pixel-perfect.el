@@ -155,6 +155,22 @@ The return value is a `cons' cell where the `car' is the width and
       (insert (propertize string 'line-prefix nil 'wrap-prefix nil))
       (buffer-text-pixel-size nil nil t))))
 
+(defun corfu-pixel-perfect--string-pixel-width (string)
+  "Pixel width of STRING, even when it's invisible."
+  (car (corfu-pixel-perfect--string-pixel-size string)))
+
+(defun corfu-pixel-perfect--column-pixel-width (cands col)
+  "Pixel width of column COL in candidates CANDS.
+
+COL is one of the following symbols: `candidate', `prefix',
+`annotation'."
+  (let ((col-fn (cond ((eq 'candidate col) 'car)
+                      ((eq 'prefix col) 'cadr)
+                      ((eq 'annotation col) 'caddr))))
+    (corfu-pixel-perfect--string-pixel-width
+     (string-join
+      (cl-loop for x in cands collect (funcall col-fn x)) "\n"))))
+
 (defun corfu-pixel-perfect--hide-annotation-maybe (cands curr)
   "Hide annotation conditionally.
 CANDS is a list of triples of candidate string, prefix and suffix (annotation).
@@ -177,23 +193,23 @@ WIDTH is in pixels. If the string is longer than width when
 rendered, it is truncated with the last character(s) replaced
 with the result of `truncate-string-ellipsis'. If shorter,
 returns an empty string."
-  (if (> (string-pixel-width str) width)
+  (if (> (corfu-pixel-perfect--string-pixel-width str) width)
       (let* ((glyphs (string-glyph-split str))
-             (glyph-width (string-pixel-width (car glyphs)))
+             (glyph-width (corfu-pixel-perfect--string-pixel-width (car glyphs)))
              (face (and glyphs (get-text-property 0 'face (car (last glyphs)))))
              (ellipsis (apply 'propertize (truncate-string-ellipsis) (if face `(face ,face))))
-             (ellipsis-width (string-pixel-width ellipsis))
+             (ellipsis-width (corfu-pixel-perfect--string-pixel-width ellipsis))
              result)
         (while (and glyphs (<= glyph-width width))
           (push (pop glyphs) result)
           (setq width (- width glyph-width)
-                glyph-width (string-pixel-width (car glyphs))))
+                glyph-width (corfu-pixel-perfect--string-pixel-width (car glyphs))))
 
         (when (and glyphs result) ;; truncated
           (while (and result (> ellipsis-width width))
             (push (pop result) glyphs)
             (setq width (+ width glyph-width)
-                  glyph-width (string-pixel-width (car result))))
+                  glyph-width (corfu-pixel-perfect--string-pixel-width (car result))))
           (push ellipsis result))
 
         (string-join (nreverse result)))
@@ -202,9 +218,9 @@ returns an empty string."
 (defun corfu-pixel-perfect--truncate-from-candidate-maybe (cands)
   "Truncate candidates CANDS from the candidates column first if necessary."
   (when (eq corfu-pixel-perfect-ellipsis 'candidate-first)
-    (let* ((cw (string-pixel-width (string-join (cl-loop for x in cands collect (car x)) "\n")))
-           (pw (string-pixel-width (string-join (cl-loop for x in cands collect (cadr x)) "\n")))
-           (sw (string-pixel-width (string-join (cl-loop for x in cands collect (caddr x)) "\n")))
+    (let* ((cw (corfu-pixel-perfect--column-pixel-width cands 'candidate))
+           (pw (corfu-pixel-perfect--column-pixel-width cands 'prefix))
+           (sw (corfu-pixel-perfect--column-pixel-width cands 'annotation))
            (width (+ pw cw sw))
            (fw (default-font-width))
            (min-width (ceiling (* fw corfu-min-width)))
@@ -248,9 +264,9 @@ returns an empty string."
 (defun corfu-pixel-perfect--truncate-from-annotation-maybe (cands)
   "Truncate candidates CANDS from the annotations column first if necessary."
   (when (eq corfu-pixel-perfect-ellipsis 'annotation-first)
-    (let* ((cw (string-pixel-width (string-join (cl-loop for x in cands collect (car x)) "\n")))
-           (pw (string-pixel-width (string-join (cl-loop for x in cands collect (cadr x)) "\n")))
-           (sw (string-pixel-width (string-join (cl-loop for x in cands collect (caddr x)) "\n")))
+    (let* ((cw (corfu-pixel-perfect--column-pixel-width cands 'candidate))
+           (pw (corfu-pixel-perfect--column-pixel-width cands 'prefix))
+           (sw (corfu-pixel-perfect--column-pixel-width cands 'annotation))
            (width (+ pw cw sw))
            (fw (default-font-width))
            (min-width (ceiling (* fw corfu-min-width)))
@@ -297,11 +313,9 @@ ML is the left margin padding in pixels on graphical displays or columns on the
 terminal.
 MR is the left margin padding in pixels on graphical displays or columns on the
 terminal."
-  (let* ((cw (string-pixel-width (string-join (cl-loop for x in cands collect (car x)) "\n")))
-         (pw (string-pixel-width (string-join (cl-loop for x in cands collect (cadr x)) "\n")))
-         (sw (car
-              (corfu-pixel-perfect--string-pixel-size
-               (string-join (cl-loop for x in cands collect (caddr x)) "\n"))))
+  (let* ((cw (corfu-pixel-perfect--column-pixel-width cands 'candidate))
+         (pw (corfu-pixel-perfect--column-pixel-width cands 'prefix))
+         (sw (corfu-pixel-perfect--column-pixel-width cands 'annotation))
          (fw (default-font-width))
          (sw (if (> sw 0) (+ sw fw)))
          (width (max (+ pw cw sw) (* fw corfu-min-width)))
@@ -335,10 +349,7 @@ terminal."
               (propertize " " 'display `(space :align-to (,(+ ml pw cw
                                                               ;; pads out the string to fit min width
                                                               (- width (+ pw cw sw))
-                                                              (- sw
-                                                                 (car
-                                                                  (corfu-pixel-perfect--string-pixel-size
-                                                                   suffix)))))))
+                                                              (- sw (corfu-pixel-perfect--string-pixel-width suffix))))))
               suffix
               (if (= i curr) current-marginr marginr)))))
 
@@ -368,15 +379,13 @@ range in a list with 2 elements, nil otherwise."
                                  collect (funcall corfu--hilit (substring c))))
                  (cands (corfu--affixate cands))
                  (cands (corfu-pixel-perfect--trim cands))
-                 (prefix-pixel-width
-                  (string-pixel-width
-                   (string-join (cl-loop for c in cands collect (cadr c)) "\n")))
+                 (pw (corfu-pixel-perfect--column-pixel-width cands 'prefix))
                  (fw (default-font-width))
                  ;; Disable the left margin if there are prefixes
-                 (ml (if (> prefix-pixel-width 0) 0 corfu-left-margin-width))
+                 (ml (if (> pw 0) 0 corfu-left-margin-width))
                  (ml (max 0 (ceiling (* fw ml))))
                  (mr (max 0 (ceiling (* fw corfu-right-margin-width))))
-                 (offset (+ prefix-pixel-width ml))
+                 (offset (+ pw ml))
                  (cands (corfu-pixel-perfect--truncate-from-candidate-maybe cands))
                  (cands (corfu-pixel-perfect--truncate-from-annotation-maybe cands))
                  (cands (corfu-pixel-perfect--hide-annotation-maybe cands curr))
