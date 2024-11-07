@@ -73,32 +73,6 @@ favorite auto-completion popup.
 
 ## New Features
 
-### Ellipsis to indicate additional text being clipped
-
-Currently `corfu` does not offer users any indication when the completion text
-is truncated. This presents a usability problem when your `corfu-max-width`
-happens to land around where the candidates end.
-
-
-| corfu | corfu-pixel-perfect |
-|-------|---------------------|
-|![No ellipsis](screenshots/no-ellipsis.png)|![With ellipsis](screenshots/ellipsis.png)
-
-Just set `corfu-pixel-perfect-ellipsis` to `t` to enable the new behavior with
-the same performance.
-
-As a sidenote, this option will necessitate moving the scroll bar to the margin,
-which has a minimum width of 1 column. This is a tradeoff between usability,
-performance and beauty. I chose to give up beauty on this one.
-
-As to the column of ellipsis, coming from outside of Emacs, this may seem
-strange to you, and I agree, but this behavior is at least somewhat consistent
-with Emacs's default behavior. Emacs shows a whole column of bitmap right arrows
-on a GUI and $ on the terminal when clipping a table of padded text. Let me know
-if you hate it, I think there's enough performance headroom in the usual case to
-make the ellipsis less intrusive.
-
-
 ### VS Code style annotations
 
 ![VS Code style annotations](screenshots/vs-code-style-annotation.png)
@@ -121,100 +95,153 @@ As a bonus, this feature actually *increases* performance to be as fast as
 vanilla `corfu`.
 
 
+### Ellipsis
+
+Currently `corfu` does not offer users any indication when the completion text
+is truncated. In situations where the annotation is just as important as the
+completion candidate names, this default presents a usability problem when your
+`corfu-max-width` happens to land around where the candidates end.
+
+![No Ellipsis](screenshots/no-ellipsis.png)
+
+With `corfu-pixel-perfect`, you now have 3 new ways to choose how to retain the
+most amount of useful information when the popup frame is too narrow, but
+adjusting `corfu-max-width` may not be desirable.
+
+
+#### Fast
+
+``` emacs-lisp
+(setopt corfu-pixel-perfect-ellipsis 'fast)
+```
+
+This option will move the scroll bar to the margin, and present a column of
+ellipsis at the last column of the text area to indicate additional text is
+clipped behind the popup frame. This is the fastest option as it has no
+detectable performance impact.
+
+![Fast Ellipsis](screenshots/ellipsis-fast.png)
+
+As a sidenote, since the margin has a minimum width of 1 column, the thinnest
+scroll bar will be 1 column. This is a necessary tradeoff between usability,
+performance and beauty. Since this is a purely utlitarian option, beauty is
+sacrificed.
+
+This is the recommended option if the other two options are too slow for you,
+but would still like some kind of truncation indication.
+
+
+#### Annotation First
+
+``` emacs-lisp
+(setopt corfu-pixel-perfect-ellipsis 'annotation-first)
+```
+
+This option puts the scroll bar back on the fringe, but uses a slower, yet still
+generally performant way to replace the portion of the content that exceeds
+`corfu-max-width` with ellipses. This option only places the ellipses on the
+elided lines, starting from the end.
+
+![Annotation First Ellipsis](screenshots/ellipsis-annotation-first.png)
+
+This is the recommended option if absolute performance is not paramount, `fast`
+is too distracting for you, and when the active `completion-at-point` function
+does not present much useful information, and thus can reasonably be clipped
+off.
+
+
+#### Candidate First
+
+``` emacs-lisp
+(setopt corfu-pixel-perfect-ellipsis 'candidate-first)
+```
+
+This option is similar to `annotation-first` with regard to performance and the
+scroll bar, but when the content is to be elided, the ellipses are placed on the
+completion candidate column first, then the annotation column.
+
+![Candidate First Ellipsis](screenshots/ellipsis-candidate-first.png)
+
+This is the recommended option if absolute performance is not paramount, `fast`
+is too distracting for you, and when you are working with a programming language
+where the signature of a function is just as if not more important than the
+candidate name.
+
+
+Finally, it is important to note that `corfu-pixel-perfect-ellipsis` is a
+buffer-local variable, therefore you can set it to a value most suitable for the
+major mode in its mode hook, and that value will only affects buffers created in
+that major mode.
+
+
+``` emacs-lisp
+(add-hook 'python-ts-mode-hook
+  (lambda ()
+    (setq-local corfu-pixel-perfect-ellipsis 'annotation-first)))
+
+(add-hook 'go-ts-mode-hook
+  (lambda ()
+    (setq-local corfu-pixel-perfect-ellipsis 'candidate-first)))
+```
+
+
 ## Future improvements
+
+### Treesitter-based candidate and annotation formatting
+
+Some IDEs such as JetBrain's IntelliJ IDEA are able to parse out the parameters
+and return type from a function signature, format the candidate column by
+appending the parameters to the method names, while leaving the annotation
+column with only the return type. For programming languages with long function
+signatures, this seems to be the best way to present the columns.
+
+![IntelliJ IDEA](screenshots/intellij.png)
+
+Since `corfu-pixel-perfect` supplies a completely independent implementation of
+all the functions in the call stack on top of `corfu--popup-show`, it has the
+potential to offer total fine-grained control of candidate string formatting
+before they are concatenated and sent to `corfu--popup-show` for rendering onto
+a child frame. The only thing remains is to design a formatter API can be
+chained in a pipeline.
+
 
 ### Much simpler terminal mode
 
-Currently, due to how `corfu` programmatically truncates strings, downstream
-packages or user customizations, even in situations where every glyph has
-exactly the same width, may still exhibit surprising effects such as this:
+`corfu` currently does not have great support for running in the terminal. While
+it has a generic method `corfu--popup-show` that downstream Elisp programs can
+override, there's no guarantee what the formatting will be in the lines of
+strings given as a parameter. Depending on the season, sometimes they are
+truncated, sometimes they are formatted irregularly, downstream Elisp programs
+simply cannot depend on it. As a result, the behavior of packages such as
+`corfu-terminal` breaks all the time.
 
-![corfu-terminal-mode](screenshots/corfu-terminal-mode.png)
-
-
-The above screenshot was captured using
-[`corfu-terminal`](https://codeberg.org/akib/emacs-corfu-terminal). While some
-may argue this is useful, I would content this is very distracting, especially
-in cases where the annotations do not contain much useful information and can
-reasonably be clipped.
-
-There is a plan to offer a much simpler `corfu-pixel-perfect-terimal-mode`
-tailored to uniform glyph width situations while respecting the API signatures
-and the constraints upstream, stay tuned.
-
-
-### Column-wise truncation
-
-The text inside the completion popup is basically a table of 3 columns - prefix,
-candidate, and annotations. Given the individual cell contents can differ in
-length wildly, and differ in significance, always truncating from the end of the
-annotations may not suit every situation. This is especially true when working
-in a statically typed programming language such as Rust or TypeScript in LSP
-mode. The signature of a function is often just as, if not more important than
-the name. If a few overly long functions such as
-`myComponentSuperSecret__DangerouslySetInnerHTML` causes the candidate column to
-suddenly increase in width greatly, the function signatures may overflow behind
-the window due to `corfu-max-width` being exceeded. It is perhaps preferrable to
-first truncate the candidates in this situation.
-
-
-### Truncation indicator other than a column of ellipsis
-
-While `corfu-pixel-perfect-ellipsis` tells you the completions text are clipped
-behind the window, it's also rather intrusive. I think *some* indicator for
-clipped text is needed, but it doesn't need to be a column of ellipsis. Let me
-know if you have some idea on how best to present this in the popup.
-
-
-### Intelligent popup width adjustment
-
-Currently `corfu-min-width` defaults to 15, which is too low for most cases, and
-`corfu-max-width` defaults to 100, which is too large for most cases. So, for
-most cases, the popup width flickers wildly between 85 columns as you scroll,
-depending on which programming languages you work with. However, since different
-programming languages differ in verbosity, you don't really know what the best
-widths to set are, so you end up constantly messing with these variables. This
-situation is exacerbated by the fact `corfu` does not remember the size after
-resizing the popup with a mouse.
-
-There must be some simple clever math you can do to guess a sensible static
-width depending on the major mode and past completion invocations. Or perhaps,
-just simply remembering the size of the popup after the user has resized it with
-a mouse.
-
-
-### Real scrollable popup?
-
-Have you noticed the completion popup does not respond to mouse scroll or
-dragging on the "scroll bar"? Yeah, the sacrifaces we made for sticking with
-Emacs sometimes border on the absurd.
-
-However, this is perhaps a blue sky project in its own right, largely due to
-performance reasons :( Emacs is lovely like that.
+Similar to the above, since `corfu-pixel-perfect` have total control of
+formatting, it therefore can guarantee the behavior of the input to
+`corfu--popup-show`. In addition, the tricks used to achieve pixel precision
+alignment in this package will automatically revert to treating every character
+as uniform in widths. Combining both characteristics, this package can offer a
+stable terminal mode with less than half the code of `corfu-terminal` while
+providing the same or better result.
 
 
 ### Misc fixes
 
 1. Margin formatter returning an empty string no longer deletes the left
    padding.
-2. When there aren't enough candidates to show a scroll bar,
-   `corfu-right-margin-width` is no longer ignored.
-3. `corfu-bar-width` is no longer ignored when it is larger than
-   `corfu-right-margin-width`.
-4. Various negative width and divide by zero issues.
-5. Popup height is also now pixel perfect.
-
-
-I'll document in detail all of these relatively minor issues in due course.
+2. Independent `corfu-right-margin-width` and `corfu-bar` options. When
+   `corfu-bar` is greater than `corfu-right-margin-width`, it no longer takes
+   over `corfu-right-margin-width`.
+3. Various negative width and divide by zero issues.
+4. Popup height is also now pixel perfect.
 
 
 ## Performance
 
 Before you read on, I would like you to ask yourself a question - how many times
-per second can you type a letter, scroll and read through a list of selections,
-make a selection decision, and then type enter? If you can do this more than a
-few times per second continuously for more than a couple of seconds at a time,
-are you sure you need an auto-completion UI? If your answer is yes to both
+per second can you type a letter, scroll and read through a list, make a
+selection decision, and then type enter? If you can do this more than a few
+times per second continuously for more than a couple of seconds at a time, are
+you sure you need an auto-completion UI? If your answer is yes to both
 questions, then read on.
 
 On a MacBook Pro M1 Pro from 2021, a benchmark is conducted on Emacs 29 compiled
@@ -276,67 +303,6 @@ result of this package is achieved.
 
 
 ## FAQ
-
-### Why wasn't this upstreamed?
-
-The usual combination of reasons in open source :)
-
-Without getting too personal, the technical hangup seems to be around a
-combinations of 1) perceived performance degradation, of which I've proven to be
-inconsequential above. 2) incompatibility with Emacs <= 28, of which I dismiss
-as irrelevant because the original PR could easily be molded into an extension
-that requires Emacs >= 29, as demonstrated in a separate PR and here, 3)
-"sacrificing existing styling" that is hostile to accessibility and usablity, by
-offering an option for the users to *opt into*, and most centrally, 4) around a
-collaborator claiming the following as a feature that regressed, despite the
-author acknowledging it was never intended, and both agreeing it was not ideal,
-but the author still insisting "the current alignment works better". [^1]
-
-![Airquote Feature](screenshots/airquote-feature.png) [^2]
-
-
-There are a number of other reasons for the rejection of the change I'm sure,
-but they are not about techincal merit, of which I'll stick to here.
-
-In short, I regret not publishing all these improvements as a separate package
-first in order to gather some community feedback before attempting to land
-multiple medium size changes. This is my mistake, of which I'm fixing by
-publishing this new package.
-
-
-[^1]: While I do see some utility in this coincidence due to higher information
-  density, after some consideration, I have decided against it and its
-  right-align-at-best-effort variant for now. The reason is downstream Elisp
-  programs rely on the output of `corfu--format-candidate`. It's easy to pad and
-  format 3 columns into a list of strings in imaginative ways, it's much harder
-  to parse and reformat irregularly formatted strings without abusing text
-  properties, or worse, using a parser. The design space for completion popup
-  column alignment is actually quite large. I may revisit some options to chain
-  formatters after taking inspiration from other IDEs. For now, I think keeping
-  the formatted output simple and predictable is the best course of action as
-  the API remains composable.
-
-[^2]: Which has since been altered a few days after the PR was closed, to take a
-  similar approach first used in this package, but still programmatically
-  truncates, without allowing the user to expand the popup frame with a mouse to
-  see the clipped annotation. While this is admittedly an improvement, this
-  right-align-at-best-effort approach still causes problems for downstream Elisp
-  programs due to its irregularity, nevermind the result is just as distracting.
-  When `corfu-max-width` is lowered, more lines are truncated in seemingly
-  random order while the rest has their annotations floating in inexplicably. An
-  example can be seen [here](#much-simpler-terminal-mode).
-
-
-### Were there any issues filed on `corfu` regarding the bugs found?
-
-Some of the problems illustrated here had been raised, but I did not file any
-issues.
-
-This is to honor `corfu` author's request to not file many issues based on a
-private conversation. Regardless, I think you'll see a pattern on how he deals
-with issues by glancing over his repos. I do not intend to cause any additional
-stress for him.
-
 
 ### Will this be ported to Company?
 
