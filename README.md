@@ -164,13 +164,12 @@ completion candidate column first, then the annotation column.
 
 This is the recommended option if absolute performance is not paramount, `fast`
 is too distracting for you, and when you are working with a programming language
-where the signature of a function is just as if not more important than the
-candidate name.
+where the signature of a function is as important as the candidate name.
 
 
 Finally, it is important to note that `corfu-pixel-perfect-ellipsis` is a
 buffer-local variable, therefore you can set it to a value most suitable for the
-major mode in its mode hook, and that value will only affects buffers created in
+major mode in its mode hook, and that value will only affect buffers created in
 that major mode.
 
 
@@ -186,6 +185,15 @@ that major mode.
 
 
 ## Future improvements
+
+### Minimum column widths
+
+With the introduction of candidate-first truncation, `corfu-min-width` does not
+make much sense anymore as it is conceivable that the entire column of
+candidates will be truncated away but the total width of the content is still
+less than `corfu-max-width` but greated than `corfu-min-width`. In this case,
+the popup is basically rendered useless.
+
 
 ### Treesitter-based candidate and annotation formatting
 
