@@ -78,16 +78,16 @@ popup frame, ellipsis will start replacing the elided portion
 from the longest candidate onwards until `corfu-min-width' is
 reached.  The bar is back on the fringe when you use this option.
 
-If it's the symbol `candidate-first', when `corfu-max-width' is
-less the width of the content, the candidate column will be the
-first to start eliding.  Ellipsis will start replacing the elided
-portion from the longest candidate onwards, then the annotations,
-until `corfu-min-width' is reached.  The bar is back on the
-fringe when you use this option."
+If it's the symbol `proportional', when `corfu-max-width' is less
+than the width of the content, both the candidate and annotation
+columns are elided proportionally to their lengths. This is the
+best option for most cases as it preserves the most information
+as the popup frame is progressively narrowed. The bar is back on
+the fringe when you use this option."
   :local t
   :type '(choice (const :tag "Fast" fast)
                  (const :tag "Annotation first" annotation-first)
-                 (const :tag "Candidate first" candidate-first)
+                 (const :tag "Proportional" proportional)
                  (const :tag "None" nil)))
 
 (define-fringe-bitmap 'corfu-pixel-perfect-scroll-bar [])
@@ -215,46 +215,23 @@ returns an empty string."
         (string-join (nreverse result)))
     str))
 
-(defun corfu-pixel-perfect--truncate-from-candidate-maybe (cands)
-  "Truncate candidates CANDS from the candidates column first if necessary."
-  (when (eq corfu-pixel-perfect-ellipsis 'candidate-first)
+(defun corfu-pixel-perfect--truncate-proportionally-maybe (cands)
+  "Truncate candidates CANDS proportionally if necessary."
+  (when (eq corfu-pixel-perfect-ellipsis 'proportional)
     (let* ((cw (corfu-pixel-perfect--column-pixel-width cands 'candidate))
            (pw (corfu-pixel-perfect--column-pixel-width cands 'prefix))
            (sw (corfu-pixel-perfect--column-pixel-width cands 'annotation))
            (width (+ pw cw sw))
            (fw (default-font-width))
-           (min-width (ceiling (* fw corfu-min-width)))
            (max-width (ceiling (* fw (min (- (frame-width) 4) corfu-max-width))))
-           (adjusted-cw cw)
-           (adjusted-sw sw))
-
-      (when (> width max-width)
-        (setq adjusted-cw (max 0 (- cw (- width max-width)))
-              width (+ pw adjusted-cw sw)))
-
-      (when (< width min-width)
-        (setq adjusted-cw (+ adjusted-cw (- min-width width))
-              width (+ pw adjusted-cw sw)))
-
-      (when (> width max-width)
-        (setq adjusted-sw (max 0 (- sw (- width max-width)))
-              width (+ pw adjusted-cw adjusted-sw)))
-
-      (when (< width min-width)
-        (setq adjusted-sw (+ adjusted-sw (- min-width width))
-              width (+ pw adjusted-cw adjusted-sw)))
-
-      (cl-loop for x in-ref cands
-               do
-               (cond ((and (< adjusted-cw cw) (> adjusted-cw 0))
-                      (setf (car x) (corfu-pixel-perfect--truncate-string-to-pixel-width (car x) adjusted-cw)))
-                     ((= adjusted-cw 0)
-                      (setf (car x) "")))
-
-               (cond ((and (< adjusted-sw sw) (> adjusted-sw 0))
-                      (setf (caddr x) (corfu-pixel-perfect--truncate-string-to-pixel-width (caddr x) adjusted-sw)))
-                     ((= adjusted-sw 0)
-                      (setf (caddr x) ""))))))
+           (excess-width (- width max-width)))
+      (when (> excess-width 0)
+        (let* ((denom (float (+ cw sw)))
+               (adjusted-cw (- cw (* excess-width (ceiling cw denom))))
+               (adjusted-sw (- sw (* excess-width (floor sw denom)))))
+          (cl-loop for x in-ref cands do
+                   (setf (car x) (corfu-pixel-perfect--truncate-string-to-pixel-width (car x) adjusted-cw))
+                   (setf (caddr x) (corfu-pixel-perfect--truncate-string-to-pixel-width (caddr x) adjusted-sw)))))))
   cands)
 
 (defun corfu-pixel-perfect--truncate-from-annotation-maybe (cands)
@@ -379,8 +356,8 @@ range in a list with 2 elements, nil otherwise."
                  (ml (max 0 (ceiling (* fw ml))))
                  (mr (max 0 (ceiling (* fw corfu-right-margin-width))))
                  (offset (+ pw ml))
-                 (cands (corfu-pixel-perfect--truncate-from-candidate-maybe cands))
                  (cands (corfu-pixel-perfect--truncate-from-annotation-maybe cands))
+                 (cands (corfu-pixel-perfect--truncate-proportionally-maybe cands))
                  (cands (corfu-pixel-perfect--hide-annotation-maybe cands curr))
                  (lines (corfu-pixel-perfect--format-candidates cands curr ml mr)))
       (corfu--popup-show pos offset nil lines curr lo bar))))

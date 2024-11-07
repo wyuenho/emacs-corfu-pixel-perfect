@@ -150,17 +150,17 @@ does not present much useful information, and thus can reasonably be clipped
 off.
 
 
-#### Candidate First
+#### Proportional
 
 ``` emacs-lisp
-(setopt corfu-pixel-perfect-ellipsis 'candidate-first)
+(setopt corfu-pixel-perfect-ellipsis 'proportional)
 ```
 
-This option is similar to `annotation-first` with regard to performance and the
-scroll bar, but when the content is to be elided, the ellipses are placed on the
-completion candidate column first, then the annotation column.
+This option places the ellipses on both the candidate and the annotation
+columns. The elided portions in each column is proportional to the width of the
+columns. This is the option that preserves the most information.
 
-![Candidate First Ellipsis](screenshots/ellipsis-candidate-first.png)
+![Proportional Ellipsis](screenshots/ellipsis-proportional.png)
 
 This is the recommended option if absolute performance is not paramount, `fast`
 is too distracting for you, and when you are working with a programming language
@@ -180,20 +180,11 @@ that major mode.
 
 (add-hook 'go-ts-mode-hook
   (lambda ()
-    (setq-local corfu-pixel-perfect-ellipsis 'candidate-first)))
+    (setq-local corfu-pixel-perfect-ellipsis 'proportional)))
 ```
 
 
 ## Future improvements
-
-### Minimum column widths
-
-With the introduction of candidate-first truncation, `corfu-min-width` does not
-make much sense anymore as it is conceivable that the entire column of
-candidates will be truncated away but the total width of the content is still
-less than `corfu-max-width` but greated than `corfu-min-width`. In this case,
-the popup is basically rendered useless.
-
 
 ### Treesitter-based candidate and annotation formatting
 
@@ -230,17 +221,6 @@ alignment in this package will automatically revert to treating every character
 as uniform in widths. Combining both characteristics, this package can offer a
 stable terminal mode with less than half the code of `corfu-terminal` while
 providing the same or better result.
-
-
-### Misc fixes
-
-1. Margin formatter returning an empty string no longer deletes the left
-   padding.
-2. Independent `corfu-right-margin-width` and `corfu-bar` options. When
-   `corfu-bar` is greater than `corfu-right-margin-width`, it no longer takes
-   over `corfu-right-margin-width`.
-3. Various negative width and divide by zero issues.
-4. Popup height is also now pixel perfect.
 
 
 ## Performance
