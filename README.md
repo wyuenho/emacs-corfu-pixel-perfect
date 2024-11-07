@@ -200,7 +200,7 @@ Since `corfu-pixel-perfect` supplies a completely independent implementation of
 all the functions in the call stack on top of `corfu--popup-show`, it has the
 potential to offer total fine-grained control of candidate string formatting
 before they are concatenated and sent to `corfu--popup-show` for rendering onto
-a child frame. The only thing remains is to design a formatter API can be
+a child frame. The only thing remains is to design a formatter API that can be
 chained in a pipeline.
 
 
