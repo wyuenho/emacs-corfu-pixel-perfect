@@ -317,7 +317,7 @@ terminal."
          (pw (corfu-pixel-perfect--column-pixel-width cands 'prefix))
          (sw (corfu-pixel-perfect--column-pixel-width cands 'annotation))
          (fw (default-font-width))
-         (sw (if (> sw 0) (+ sw fw)))
+         (sw (if (> sw 0) (+ sw fw) sw))
          (width (max (+ pw cw sw) (* fw corfu-min-width)))
          (marginl (propertize " " 'display `(space :width (,ml))))
          (marginr (propertize " " 'display `(space :width (,mr))))
