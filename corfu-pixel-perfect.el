@@ -402,23 +402,24 @@ The current candidate CURR is highlighted.
 A scroll bar is displayed from LO to LO+BAR."
   (pcase-let ((`(,content-width . ,content-height)
                (corfu-pixel-perfect--string-pixel-size (string-join lines "\n")))
-              (lh (default-line-height)))
+              (lh (default-line-height))
+              (buf (current-buffer)))
     (with-current-buffer (corfu--make-buffer " *corfu*")
       (let* ((ch (default-line-height))
              (cw (default-font-width))
              (bw (max 0 (min 16 (ceiling (* cw corfu-bar-width)))))
-             (bw (if lo (if (eq corfu-pixel-perfect-ellipsis 'fast)
+             (bw (if lo (if (eq (buffer-local-value 'corfu-pixel-perfect-ellipsis buf) 'fast)
                             (ceiling (* cw corfu-bar-width))
                           bw)
                    0))
              (width (+ bw
-                       (if (memq corfu-pixel-perfect-ellipsis '(nil fast))
+                       (if (memq (buffer-local-value 'corfu-pixel-perfect-ellipsis buf) '(nil fast))
                            ;; -4 because of margins and some additional safety
                            (min (* cw (min (- (frame-width) 4) corfu-max-width)) content-width)
                          ;; anything else the content is already truncated
                          content-width)))
              (sbar (propertize " " 'display
-                               (if (eq corfu-pixel-perfect-ellipsis 'fast)
+                               (if (eq (buffer-local-value 'corfu-pixel-perfect-ellipsis buf) 'fast)
                                    `((margin right-margin)
                                      ,(propertize " " 'face 'corfu-bar))
                                  '(right-fringe corfu-pixel-perfect-scroll-bar corfu-bar))))
@@ -439,7 +440,7 @@ A scroll bar is displayed from LO to LO+BAR."
 
           ;; Adjust margin and fringe when a scroll bar is needed
           (if lo
-              (if (eq corfu-pixel-perfect-ellipsis 'fast)
+              (if (eq (buffer-local-value 'corfu-pixel-perfect-ellipsis buf) 'fast)
                   (setq-local right-margin-width 1
                               right-fringe-width nil)
                 (setq-local right-fringe-width bw
@@ -450,7 +451,7 @@ A scroll bar is displayed from LO to LO+BAR."
           ;; Enable ellipsis when the window text area is shorter than
           ;; the content-width
           (setf (alist-get 'no-special-glyphs corfu--frame-parameters)
-                (if corfu-pixel-perfect-ellipsis
+                (if (buffer-local-value 'corfu-pixel-perfect-ellipsis buf)
                     (>= (- width bw) content-width)
                   t))
 
