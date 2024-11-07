@@ -255,8 +255,7 @@ returns an empty string."
                       (setf (car x) "")))
 
                (cond ((and (< adjusted-sw sw) (> adjusted-sw 0))
-                      (setf (caddr x)
-                            (corfu-pixel-perfect--truncate-string-to-pixel-width (caddr x) adjusted-sw)))
+                      (setf (caddr x) (corfu-pixel-perfect--truncate-string-to-pixel-width (caddr x) adjusted-sw)))
                      ((= adjusted-sw 0)
                       (setf (caddr x) ""))))))
   cands)
