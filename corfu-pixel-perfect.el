@@ -244,9 +244,6 @@ returns an empty string."
         (setq adjusted-sw (+ adjusted-sw (- min-width width))
               width (+ pw adjusted-cw adjusted-sw)))
 
-      (when (and (< adjusted-cw cw) (> adjusted-cw 0))
-        (setq adjusted-cw (- adjusted-cw fw)))
-
       (cl-loop for x in-ref cands
                do
                (cond ((and (< adjusted-cw cw) (> adjusted-cw 0))
@@ -289,9 +286,6 @@ returns an empty string."
         (setq adjusted-cw (+ adjusted-cw (- min-width width))
               width (+ pw adjusted-cw adjusted-sw)))
 
-      (when (and (< adjusted-sw sw) (> adjusted-sw 0))
-        (setq adjusted-sw (- adjusted-sw fw)))
-
       (cl-loop for x in-ref cands
                do
                (cond ((and (< adjusted-cw cw) (> adjusted-cw 0))
@@ -316,7 +310,7 @@ terminal."
          (pw (corfu-pixel-perfect--column-pixel-width cands 'prefix))
          (sw (corfu-pixel-perfect--column-pixel-width cands 'annotation))
          (fw (default-font-width))
-         (sw (if (> sw 0) (+ sw fw) sw))
+         (sw (+ sw (if (> sw 0) fw 0)))
          (width (max (+ pw cw sw) (* fw corfu-min-width)))
          (marginl (propertize " " 'display `(space :width (,ml))))
          (marginr (propertize " " 'display `(space :width (,mr))))
