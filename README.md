@@ -158,7 +158,7 @@ off.
 
 This option places the ellipses on both the candidate and the annotation
 columns. The elided portions in each column is proportional to the width of the
-columns. This is the option that preserves the most information.
+column. This option preserves the most information.
 
 ![Proportional Ellipsis](screenshots/ellipsis-proportional.png)
 
