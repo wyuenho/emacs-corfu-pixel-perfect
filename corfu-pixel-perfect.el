@@ -286,6 +286,26 @@ ML is the left margin padding in pixels on graphical displays or columns on the
 terminal.
 MR is the left margin padding in pixels on graphical displays or columns on the
 terminal."
+  ;; `corfu-current' may affect frame-width too
+  (let ((i 0)
+        (head cands))
+    (while (and head (< i (length cands)) (< i curr))
+      (pop head)
+      (cl-incf i))
+
+    (let* ((head (car head))
+           (cand (substring (car head)))
+           (prefix (substring (cadr head)))
+           (suffix (substring (caddr head))))
+
+      (add-face-text-property 0 (length cand) 'corfu-current t cand)
+      (add-face-text-property 0 (length prefix) 'corfu-current t prefix)
+      (add-face-text-property 0 (length suffix) 'corfu-current t suffix)
+
+      (setf (car head) cand
+            (cadr head) prefix
+            (caddr head) suffix)))
+
   (let* ((cw (corfu-pixel-perfect--column-pixel-width cands 'candidate))
          (pw (corfu-pixel-perfect--column-pixel-width cands 'prefix))
          (sw (corfu-pixel-perfect--column-pixel-width cands 'annotation))
@@ -302,27 +322,22 @@ terminal."
 
     (cl-loop for (cand prefix suffix) being the elements of cands
              using (index i)
-             do
-             ;; `corfu-current' may affect frame-width too
-             (when (= i curr)
-               (setq cand (substring cand)
-                     prefix (substring prefix)
-                     suffix (substring suffix))
-               (cl-loop for s in (list cand prefix suffix)
-                        do (add-face-text-property 0 (length s) 'corfu-current t s)))
-
              ;; do not use relative space pixel params as they may lead to wrong
              ;; `string-pixel-width' results
              collect
              (concat
               (if (= i curr) current-marginl marginl)
               prefix
-              (propertize " " 'display `(space :align-to (,(+ ml pw))))
+              (apply 'propertize " "
+                     'display `(space :align-to (,(+ ml pw)))
+                     (if (= i curr) '(face corfu-current)))
               cand
-              (propertize " " 'display `(space :align-to (,(+ ml pw cw
-                                                              ;; pads out the string to fit min width
-                                                              (- width (+ pw cw sw))
-                                                              (- sw (corfu-pixel-perfect--string-pixel-width suffix))))))
+              (apply 'propertize " "
+                     'display `(space :align-to (,(+ ml pw cw
+                                                     ;; pads out the string to fit min width
+                                                     (- width (+ pw cw sw))
+                                                     (- sw (corfu-pixel-perfect--string-pixel-width suffix)))))
+                     (if (= i curr) '(face corfu-current)))
               suffix
               (if (= i curr) current-marginr marginr)))))
 
@@ -367,11 +382,10 @@ range in a list with 2 elements, nil otherwise."
 
 (cl-defmethod corfu--popup-show :around (pos off _ lines
                                              &context (corfu-pixel-perfect-mode (eql t))
-                                             &optional curr lo bar)
+                                             &optional _ lo bar)
   "Show LINES as popup at POS - PW.
 OFF is the number of pixels on graphical displays or columns in the terminal to
 move the popup to the left.
-The current candidate CURR is highlighted.
 A scroll bar is displayed from LO to LO+BAR."
   (pcase-let ((`(,content-width . ,content-height)
                (corfu-pixel-perfect--string-pixel-size (string-join lines "\n")))
@@ -438,9 +452,6 @@ A scroll bar is displayed from LO to LO+BAR."
                                         (when (and lo (<= lo i (+ lo bar)))
                                           sbar)
                                         (pop lines)))
-                            (when (eq i curr)
-                              (add-face-text-property
-                               0 (length line) 'corfu-current 'append line))
                             collect line)
                    "\n"))
           (goto-char (point-min)))
