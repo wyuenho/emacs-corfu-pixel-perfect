@@ -417,7 +417,7 @@ A scroll bar is displayed from LO to LO+BAR."
              (sbar (propertize " " 'display
                                (if (eq ellipsis 'fast)
                                    `((margin right-margin)
-                                     ,(propertize " " 'face 'corfu-bar))
+                                     ,(propertize (make-string (/ bw cw) ?\s)'face 'corfu-bar))
                                  '(right-fringe corfu-pixel-perfect-scroll-bar corfu-bar))))
              (pos (posn-x-y pos))
              ;; XXX HACK: Minimum popup height must be at least 1 line of the
@@ -528,7 +528,7 @@ A scroll bar is displayed from LO to LO+BAR."
              (sbar (propertize " " 'display
                                (if (eq ellipsis 'fast)
                                    `((margin right-margin)
-                                     ,(propertize " " 'face 'corfu-bar))
+                                     ,(propertize (make-string (/ bw fw) ?\s) 'face 'corfu-bar))
                                  '(right-fringe corfu-pixel-perfect-scroll-bar corfu-bar))))
 
              (inhibit-redisplay t))
