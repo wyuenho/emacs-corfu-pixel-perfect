@@ -448,7 +448,7 @@ A scroll bar is displayed from LO to LO+BAR."
           ;; Enable ellipsis when the window text area is shorter than
           ;; the content-width
           (setf (alist-get 'no-special-glyphs corfu--frame-parameters)
-                (if (buffer-local-value 'corfu-pixel-perfect-ellipsis buf)
+                (if (eq (buffer-local-value 'corfu-pixel-perfect-ellipsis buf) 'fast)
                     (>= (- width bw) content-width)
                   t))
 
@@ -548,7 +548,7 @@ A scroll bar is displayed from LO to LO+BAR."
                           right-fringe-width nil))
 
             (set-frame-parameter frame 'no-special-glyphs
-                                 (if (buffer-local-value 'corfu-pixel-perfect-ellipsis buf)
+                                 (if (eq (buffer-local-value 'corfu-pixel-perfect-ellipsis buf) 'fast)
                                      (>= (- (frame-text-width frame) bw) content-width)
                                    t))
 
