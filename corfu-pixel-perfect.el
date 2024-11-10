@@ -113,6 +113,7 @@ the fringe when you use this option."
                   left-fringe-width nil
                   right-fringe-width nil
                   fringe-indicator-alist nil)
+      (add-hook 'window-size-change-functions 'corfu-pixel-perfect--refresh-popup-on-size-change nil t)
       (add-to-invisibility-spec 'corfu-pixel-perfect))
 
     buffer))
@@ -467,6 +468,106 @@ A scroll bar is displayed from LO to LO+BAR."
 
         (setq corfu--frame (corfu--make-frame corfu--frame x y width height))))))
 
+;; TODO: optimize and dry this up
+(defun corfu-pixel-perfect--refresh-popup-on-size-change (&optional frame-or-window)
+  "Refresh popup content on FRAME-OR-WINDOW."
+  (let ((frame (cond ((framep frame-or-window) frame-or-window)
+                     ((windowp frame-or-window) (window-frame frame-or-window))
+                     (t corfu--frame))))
+
+    (when (and (> corfu--total 0)
+               (frame-live-p frame)
+               (eq frame corfu--frame)
+               (frame-size-changed-p frame))
+
+      (pcase-let* ((fw (default-font-width))
+                   (corfu-count (frame-text-lines frame))
+
+                   (off (max (min corfu-scroll-margin (/ corfu-count 2)) 0))
+                   (corr (if (= corfu-scroll-margin (/ corfu-count 2)) (1- (mod corfu-count 2)) 0))
+                   (corfu--scroll (min (max 0 (- corfu--total corfu-count))
+                                       (max 0 (+ corfu--index off 1 (- corfu-count))
+                                            (min (- corfu--index off corr) corfu--scroll))))
+
+                   (last (min (+ corfu--scroll corfu-count) corfu--total))
+                   (bar (ceiling (* corfu-count corfu-count) corfu--total))
+                   (lo (min (- corfu-count bar 1) (floor (* corfu-count corfu--scroll) corfu--total)))
+                   (lo (if (/= corfu--scroll 0) (max 1 lo) lo))
+                   (lo (if (/= last corfu--total) (min (- corfu-count bar 2) lo) lo))
+                   (lo (if (<= corfu--total corfu-count) nil lo))
+                   (bar (if (<= corfu--total corfu-count) nil bar))
+
+                   (curr (- corfu--index corfu--scroll))
+
+                   (cands (cl-loop repeat corfu-count
+                                   for c in (nthcdr corfu--scroll corfu--candidates)
+                                   collect (funcall corfu--hilit (substring c))))
+                   (cands (corfu--affixate cands))
+                   (cands (corfu-pixel-perfect--trim cands))
+
+                   (pw (corfu-pixel-perfect--column-pixel-width cands 'prefix))
+                   (ml (if (> pw 0) 0 corfu-left-margin-width))
+                   (ml (max 0 (ceiling (* fw ml))))
+                   (mr (max 0 (ceiling (* fw corfu-right-margin-width))))
+
+                   (corfu-max-width (/ (- (frame-text-width frame) ml mr) fw))
+                   (corfu-min-width corfu-max-width)
+
+                   (cands (corfu-pixel-perfect--truncate-from-annotation-maybe cands))
+                   (cands (corfu-pixel-perfect--truncate-proportionally-maybe cands))
+                   (cands (corfu-pixel-perfect--hide-annotation-maybe cands curr))
+                   (lines (corfu-pixel-perfect--format-candidates cands curr ml mr))
+
+                   (content-width (corfu-pixel-perfect--string-pixel-width (string-join lines "\n")))
+
+                   (buf (current-buffer))
+                   (bw (max 0 (min 16 (ceiling (* fw corfu-bar-width)))))
+                   (bw (if lo (if (eq (buffer-local-value 'corfu-pixel-perfect-ellipsis buf) 'fast)
+                                  (ceiling (* fw corfu-bar-width))
+                                bw)
+                         0))
+                   (sbar (propertize " " 'display
+                                     (if (eq (buffer-local-value 'corfu-pixel-perfect-ellipsis buf) 'fast)
+                                         `((margin right-margin)
+                                           ,(propertize " " 'face 'corfu-bar))
+                                       '(right-fringe corfu-pixel-perfect-scroll-bar corfu-bar)))))
+
+        (with-current-buffer (window-buffer (frame-root-window frame))
+          (setq buffer-read-only nil)
+
+          (delete-region (point-min) (point-max))
+
+          (if lo
+              (if (eq (buffer-local-value 'corfu-pixel-perfect-ellipsis buf) 'fast)
+                  (setq-local right-margin-width 1
+                              right-fringe-width nil)
+                (setq-local right-fringe-width bw
+                            right-margin-width nil))
+            (setq-local right-margin-width nil
+                        right-fringe-width nil))
+
+          (setf (alist-get 'no-special-glyphs corfu--frame-parameters)
+                (if (buffer-local-value 'corfu-pixel-perfect-ellipsis buf)
+                    (>= (- (frame-text-width frame) bw) content-width)
+                  t))
+
+          (insert (string-join
+                   (cl-loop for i from 0 to (1- (length lines))
+                            with line = nil
+                            do
+                            (setq line (concat
+                                        (when (and lo (<= lo i (+ lo bar)))
+                                          sbar)
+                                        (pop lines)))
+                            collect line)
+                   "\n"))
+
+          (goto-char (point-min))
+
+          (setq buffer-read-only t))
+
+        (set-window-buffer (frame-root-window frame)
+                           (window-buffer (frame-root-window frame)))))))
 
 (defvar corfu-pixel-perfect--corfu--frame-parameters nil)
 
