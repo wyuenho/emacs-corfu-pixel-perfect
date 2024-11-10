@@ -111,8 +111,7 @@ the fringe when you use this option."
     (with-current-buffer buffer
       (setq-local buffer-display-table corfu-pixel-perfect--display-table
                   left-fringe-width nil
-                  right-fringe-width nil
-                  fringe-indicator-alist nil)
+                  right-fringe-width nil)
       (add-hook 'window-size-change-functions 'corfu-pixel-perfect--refresh-popup-on-size-change nil t)
       (add-to-invisibility-spec 'corfu-pixel-perfect))
 
