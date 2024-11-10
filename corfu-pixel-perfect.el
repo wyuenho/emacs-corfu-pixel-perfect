@@ -480,7 +480,7 @@ A scroll bar is displayed from LO to LO+BAR."
                (eq frame corfu--frame)
                (frame-size-changed-p frame))
 
-      (let* ((fw (default-font-width))
+      (let* ((fw (frame-char-width frame))
              (corfu-count (frame-text-lines frame))
 
              (off (max (min corfu-scroll-margin (/ corfu-count 2)) 0))
