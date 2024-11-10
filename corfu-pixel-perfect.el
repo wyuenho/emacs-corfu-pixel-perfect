@@ -480,8 +480,6 @@ A scroll bar is displayed from LO to LO+BAR."
                (eq frame corfu--frame)
                (frame-size-changed-p frame))
 
-      (message "corfu-pixel-perfect--refresh-popup-on-size-change: %s" (current-time-string))
-
       (let* ((fw (default-font-width))
              (corfu-count (frame-text-lines frame))
 
