@@ -184,6 +184,15 @@ that major mode.
 ```
 
 
+### Mouse Interactivity
+
+Sometimes, the mouse is faster than the keyboard, because Emacs.
+
+#### Resize
+
+![Mouse Resize](screenshots/mouse-resize.m4v)
+
+
 ## Future improvements
 
 ### Treesitter-based candidate and annotation formatting
