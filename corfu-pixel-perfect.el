@@ -423,7 +423,7 @@ A scroll bar is displayed from LO to LO+BAR."
                     (- yb height lh border border)
                   yb)))
         (with-silent-modifications
-          (erase-buffer)
+          (delete-region (point-min) (point-max))
 
           ;; Adjust margin and fringe when a scroll bar is needed
           (if lo
