@@ -98,15 +98,24 @@ the fringe when you use this option."
     dt)
   "Truncation ellipsis when `corfu-pixel-perfect-ellipsis' is `fast'")
 
-(defun corfu-pixel-perfect--make-buffer-advice (buffer)
-  "Put a display table with an ellipsis on BUFFER."
-  (with-current-buffer buffer
-    (setq-local buffer-display-table corfu-pixel-perfect--display-table
-                left-fringe-width nil
-                right-fringe-width nil
-                fringe-indicator-alist nil)
-    (add-to-invisibility-spec 'corfu-pixel-perfect))
-  buffer)
+(defun corfu-pixel-perfect--make-buffer-advice (fn &rest args)
+  "Set up buffer local variables for pixel perfection."
+  (let ((orig-get-buffer-create (symbol-function 'get-buffer-create))
+        buffer)
+
+    (cl-letf (((symbol-function 'get-buffer-create)
+               (lambda (name &optional _)
+                 (funcall orig-get-buffer-create name t))))
+      (setq buffer (apply fn args)))
+
+    (with-current-buffer buffer
+      (setq-local buffer-display-table corfu-pixel-perfect--display-table
+                  left-fringe-width nil
+                  right-fringe-width nil
+                  fringe-indicator-alist nil)
+      (add-to-invisibility-spec 'corfu-pixel-perfect))
+
+    buffer))
 
 (defun corfu-pixel-perfect--make-frame-advice (fn &rest args)
   "Ensure buffer local variables take effect in FRAME."
@@ -475,7 +484,7 @@ A scroll bar is displayed from LO to LO+BAR."
   (if corfu-pixel-perfect-mode
       (progn
         (setq corfu-pixel-perfect--corfu--frame-parameters (copy-tree corfu--frame-parameters))
-        (advice-add 'corfu--make-buffer :filter-return 'corfu-pixel-perfect--make-buffer-advice)
+        (advice-add 'corfu--make-buffer :around 'corfu-pixel-perfect--make-buffer-advice)
         (advice-add 'corfu--make-frame :around 'corfu-pixel-perfect--make-frame-advice)
         (advice-add 'corfu--format-candidates :override 'corfu-pixel-perfect--format-candidates)
         (advice-add 'corfu--candidates-popup :override 'corfu-pixel-perfect--candidates-popup))
