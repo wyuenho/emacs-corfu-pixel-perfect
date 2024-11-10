@@ -456,8 +456,8 @@ A scroll bar is displayed from LO to LO+BAR."
                    "\n"))
           (goto-char (point-min)))
 
-        (with-current-buffer (current-buffer)
-          (setq corfu--frame (corfu--make-frame corfu--frame x y width height)))))))
+        (setq corfu--frame (corfu--make-frame corfu--frame x y width height))))))
+
 
 (defvar corfu-pixel-perfect--corfu--frame-parameters nil)
 
