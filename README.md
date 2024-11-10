@@ -190,7 +190,7 @@ Sometimes, the mouse is faster than the keyboard, because Emacs.
 
 #### Resize
 
-[![Mouse Resize](screenshots/mouse-resize.png)](https://youtu.be/39Lo2s_FG2A)
+[![Mouse Resize](http://i.ytimg.com/vi/39Lo2s_FG2A/hqdefault.jpg)](https://www.youtube.com/watch?v=39Lo2s_FG2A)
 
 
 ## Future improvements
