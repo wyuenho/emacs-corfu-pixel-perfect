@@ -510,16 +510,6 @@ A scroll bar is displayed from LO to LO+BAR."
              (ml (max 0 (ceiling (* fw ml))))
              (mr (max 0 (ceiling (* fw corfu-right-margin-width))))
 
-             (corfu-max-width (/ (- (window-body-width (frame-root-window frame) t) ml mr) fw))
-             (corfu-min-width corfu-max-width)
-
-             (cands (corfu-pixel-perfect--truncate-from-annotation-maybe cands))
-             (cands (corfu-pixel-perfect--truncate-proportionally-maybe cands))
-             (cands (corfu-pixel-perfect--hide-annotation-maybe cands curr))
-             (lines (corfu-pixel-perfect--format-candidates cands curr ml mr))
-
-             (content-width (corfu-pixel-perfect--string-pixel-width (string-join lines "\n")))
-
              (bw (max 0 (min 16 (ceiling (* fw corfu-bar-width)))))
              (bw (if lo (if (eq ellipsis 'fast)
                             (* fw (ceiling corfu-bar-width))
@@ -530,6 +520,14 @@ A scroll bar is displayed from LO to LO+BAR."
                                    `((margin right-margin)
                                      ,(propertize (make-string (/ bw fw) ?\s) 'face 'corfu-bar))
                                  '(right-fringe corfu-pixel-perfect-scroll-bar corfu-bar))))
+
+             (corfu-max-width (floor (- (frame-text-width frame) bw ml mr) fw))
+             (cands (corfu-pixel-perfect--truncate-from-annotation-maybe cands))
+             (cands (corfu-pixel-perfect--truncate-proportionally-maybe cands))
+             (cands (corfu-pixel-perfect--hide-annotation-maybe cands curr))
+             (lines (corfu-pixel-perfect--format-candidates cands curr ml mr))
+
+             (content-width (corfu-pixel-perfect--string-pixel-width (string-join lines "\n")))
 
              (inhibit-redisplay t))
 
