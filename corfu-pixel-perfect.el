@@ -234,7 +234,7 @@ returns an empty string."
            (width (+ pw cw sw))
            (fw (default-font-width))
            (max-width (* fw (min (- (frame-width) 4) corfu-max-width)))
-           (min-width (* fw corfu-min-width))
+           (min-width (- (* fw corfu-min-width) pw))
            (excess-width (- width max-width)))
       (when (> excess-width 0)
         (let* ((denom (+ cw sw))
