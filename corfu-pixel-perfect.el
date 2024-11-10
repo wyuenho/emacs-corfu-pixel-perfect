@@ -510,7 +510,7 @@ A scroll bar is displayed from LO to LO+BAR."
              (ml (max 0 (ceiling (* fw ml))))
              (mr (max 0 (ceiling (* fw corfu-right-margin-width))))
 
-             (corfu-max-width (/ (- (* fw (- (frame-width frame) 4)) ml mr) (float fw)))
+             (corfu-max-width (/ (- (window-body-width (frame-root-window frame) t) ml mr) (float fw)))
              (corfu-min-width corfu-max-width)
 
              (cands (corfu-pixel-perfect--truncate-from-annotation-maybe cands))
