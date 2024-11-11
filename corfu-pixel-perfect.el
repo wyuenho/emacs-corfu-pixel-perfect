@@ -523,7 +523,7 @@ A scroll bar is displayed from LO to LO+BAR."
                                  '(right-fringe corfu-pixel-perfect-scroll-bar corfu-bar))))
 
              (corfu-max-width (floor (- (frame-text-width frame) bw ml mr) fw))
-             (corfu-min-width (min corfu-min-width corfu-max-width))
+             (corfu-min-width corfu-max-width)
              (cands (corfu-pixel-perfect--truncate-from-annotation-maybe cands))
              (cands (corfu-pixel-perfect--truncate-proportionally-maybe cands))
              (cands (corfu-pixel-perfect--hide-annotation-maybe cands curr))
