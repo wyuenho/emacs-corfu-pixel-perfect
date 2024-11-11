@@ -113,6 +113,7 @@ the fringe when you use this option."
                   left-fringe-width nil
                   right-fringe-width nil)
       (add-hook 'window-size-change-functions 'corfu-pixel-perfect--refresh-popup-on-size-change nil t)
+      (add-hook 'window-size-change-functions 'corfu-pixel-perfect--reposition-corfu-popupinfo-frame nil t)
       (add-to-invisibility-spec 'corfu-pixel-perfect))
 
     buffer))
@@ -468,7 +469,7 @@ A scroll bar is displayed from LO to LO+BAR."
         (setq corfu--frame (corfu--make-frame corfu--frame x y width height))))))
 
 ;; TODO: optimize and dry this up
-(defun corfu-pixel-perfect--refresh-popup-on-size-change (&optional frame-or-window)
+(defun corfu-pixel-perfect--refresh-popup-on-size-change (frame-or-window)
   "Refresh popup content on FRAME-OR-WINDOW."
   (let ((frame (cond ((framep frame-or-window) frame-or-window)
                      ((windowp frame-or-window) (window-frame frame-or-window))
@@ -565,6 +566,24 @@ A scroll bar is displayed from LO to LO+BAR."
 
       (set-window-buffer (frame-root-window frame)
                          (window-buffer (frame-root-window frame))))))
+
+;; FIXME: on macOS, when resizing a frame from top left, the position doesn't
+;; change. Fix won't be available until Emacs 31.
+;; https://debbugs.gnu.org/cgi/bugreport.cgi?bug=74074
+(defun corfu-pixel-perfect--reposition-corfu-popupinfo-frame (frame-or-window)
+  (let ((frame (cond ((framep frame-or-window) frame-or-window)
+                     ((windowp frame-or-window) (window-frame frame-or-window)))))
+    (when (and (> corfu--total 0)
+               corfu-popupinfo-mode
+               (frame-live-p frame)
+               (frame-live-p corfu-popupinfo--frame)
+               (eq frame corfu--frame)
+               (frame-size-changed-p frame))
+      (pcase-let* ((`(,x . ,y) (frame-position frame))
+                   (width (frame-native-width frame))
+                   (border (alist-get 'internal-border-width corfu--frame-parameters)))
+        (with-selected-frame corfu-popupinfo--frame
+          (set-frame-position corfu-popupinfo--frame (+ x width (- border)) y))))))
 
 (defvar corfu-pixel-perfect--corfu--frame-parameters nil)
 
