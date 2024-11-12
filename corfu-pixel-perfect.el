@@ -365,7 +365,7 @@ range in a list with 2 elements, nil otherwise."
       (setq lo (min (- corfu-count bar 2) lo)))
     (and (> corfu--total corfu-count) (list lo bar))))
 
-(defun corfu-pixel-perfect--should-show-scroll-bar ()
+(defun corfu-pixel-perfect--show-scroll-bar-p ()
   (not (not (corfu-pixel-perfect--scroll-bar-range))))
 
 (defun corfu-pixel-perfect--set-frame-position (frame pos off)
@@ -482,7 +482,7 @@ the terminal to offset the popup to the left."
                (lh (default-line-height))
                (ellipsis (buffer-local-value 'corfu-pixel-perfect-ellipsis (current-buffer)))
                (cw (default-font-width))
-               (bw (if (corfu-pixel-perfect--should-show-scroll-bar)
+               (bw (if (corfu-pixel-perfect--show-scroll-bar-p)
                        (corfu-pixel-perfect--bar-pixel-width)
                      0))
                (width (+ bw
@@ -543,7 +543,7 @@ its size has changed."
              (ml (if (> pw 0) 0 corfu-left-margin-width))
              (ml (max 0 (ceiling (* fw ml))))
              (mr (max 0 (ceiling (* fw corfu-right-margin-width))))
-             (bw (if (corfu-pixel-perfect--should-show-scroll-bar)
+             (bw (if (corfu-pixel-perfect--show-scroll-bar-p)
                      (corfu-pixel-perfect--bar-pixel-width)
                    0))
              ;; keeping this in floating point for precision
