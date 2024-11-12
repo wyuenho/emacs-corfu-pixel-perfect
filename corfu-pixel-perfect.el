@@ -368,7 +368,12 @@ range in a list with 2 elements, nil otherwise."
 (defun corfu-pixel-perfect--should-show-scroll-bar ()
   (not (not (corfu-pixel-perfect--scroll-bar-range))))
 
-(defun corfu-pixel-perfect--compute-frame-position (frame pos off)
+(defun corfu-pixel-perfect--set-frame-position (frame pos off)
+  "Set FRAME position to POS - OFF.
+
+POS is the result of `posn-at-point'.  OFF is the number of
+pixels on graphical displays or columns on the terminal to offset
+the top-left corner of the frame to the left."
   (let* ((lh (default-line-height))
          (win (frame-root-window frame))
          (content-height (with-selected-window win
@@ -387,7 +392,12 @@ range in a list with 2 elements, nil otherwise."
          (y (if (> (+ yb (* corfu-count ch) lh lh) (frame-native-height))
                 (- yb height lh border border)
               yb)))
-    (list x y)))
+
+    (pcase-let ((`(,px . ,py) (frame-position frame)))
+      (unless (and (= x px) (= y py))
+        (set-frame-position frame x y)))
+
+    frame))
 
 ;; TODO: now the frame width doesn't fluctuate, we just need to compute
 ;; a good enough initial width
@@ -416,6 +426,7 @@ range in a list with 2 elements, nil otherwise."
         (corfu--popup-show pos offset nil lines curr)))))
 
 (defun corfu-pixel-perfect--bar-pixel-width ()
+  "Scroll bar width in pixels."
   (let* ((ellipsis (buffer-local-value 'corfu-pixel-perfect-ellipsis (current-buffer)))
          (cw (default-font-width))
          (bw (max 0 (min 16 (ceiling (* cw corfu-bar-width))))))
@@ -425,6 +436,7 @@ range in a list with 2 elements, nil otherwise."
       bw)))
 
 (defun corfu-pixel-perfect--refresh-buffer (buffer lines)
+  "Rerender BUFFER with LINES and refresh scroll bar position."
   (pcase-let* ((`(,lo ,bar) (corfu-pixel-perfect--scroll-bar-range))
                (fw (default-font-width))
                (bw (corfu-pixel-perfect--bar-pixel-width))
@@ -462,10 +474,9 @@ range in a list with 2 elements, nil otherwise."
 (cl-defmethod corfu--popup-show :around (pos off _ lines
                                              &context (corfu-pixel-perfect-mode (eql t))
                                              &optional _ _ _)
-  "Show LINES as popup at POS - PW.
-OFF is the number of pixels on graphical displays or columns in the terminal to
-move the popup to the left.
-A scroll bar is displayed from LO to LO+BAR."
+  "Show LINES in a popup at POS - OFF.
+OFF is the number of pixels on graphical displays or columns in
+the terminal to offset the popup to the left."
   (pcase-let* ((`(,content-width . ,content-height)
                 (corfu-pixel-perfect--string-pixel-size (string-join lines "\n")))
                (lh (default-line-height))
@@ -493,11 +504,10 @@ A scroll bar is displayed from LO to LO+BAR."
       (corfu-pixel-perfect--refresh-buffer (current-buffer) lines)
       (setq corfu--frame (corfu--make-frame corfu--frame 0 0 width height)))
 
-    (apply 'set-frame-position corfu--frame (corfu-pixel-perfect--compute-frame-position corfu--frame pos off))
-    (make-frame-visible corfu--frame)
-    corfu--frame))
+    (make-frame-visible (corfu-pixel-perfect--set-frame-position corfu--frame pos off))))
 
 (defun corfu-pixel-perfect--prepare-candidates ()
+  "Prepare completion candidates for formatting."
   (let* ((cands (cl-loop repeat corfu-count
                          for c in (nthcdr corfu--scroll corfu--candidates)
                          collect (funcall corfu--hilit (substring c))))
@@ -519,11 +529,9 @@ candidates it can fit.
 The popup frame is refreshed if and only if POS is non-nil or if
 its size has changed."
   (let ((frame (cond ((framep frame-or-window) frame-or-window)
-                     ((windowp frame-or-window) (window-frame frame-or-window))
-                     (t corfu--frame))))
+                     ((windowp frame-or-window) (window-frame frame-or-window)))))
 
-    (when (and (> corfu--total 0)
-               (frame-live-p frame)
+    (when (and (frame-live-p frame)
                (eq frame corfu--frame)
                (or (frame-size-changed-p frame) pos))
 
@@ -559,10 +567,7 @@ its size has changed."
                                  (>= (- (frame-text-width frame) bw) content-width)
                                t))
         (when pos
-          (pcase-let ((`(,x ,y) (corfu-pixel-perfect--compute-frame-position frame pos (+ pw ml)))
-                      (`(,px . ,py) (frame-position frame)))
-            (unless (and (= x px) (= y py))
-              (set-frame-position frame x y))))))
+          (corfu-pixel-perfect--set-frame-position frame pos (+ pw ml)))))
 
     frame))
 
@@ -570,10 +575,14 @@ its size has changed."
 ;; change. Fix won't be available until Emacs 31.
 ;; https://debbugs.gnu.org/cgi/bugreport.cgi?bug=74074
 (defun corfu-pixel-perfect--reposition-corfu-popupinfo-frame (frame-or-window)
+  "Synchronize the positions of the completion and the info popup frames.
+
+If FRAME-OR-WINDOW is a frame, the buffer of its root window is
+the target, otherwise FRAME-OR-WINDOW must be a window and the
+target is the buffer in it."
   (let ((frame (cond ((framep frame-or-window) frame-or-window)
                      ((windowp frame-or-window) (window-frame frame-or-window)))))
-    (when (and (> corfu--total 0)
-               corfu-popupinfo-mode
+    (when (and corfu-popupinfo-mode
                (frame-live-p frame)
                (frame-live-p corfu-popupinfo--frame)
                (eq frame corfu--frame)
