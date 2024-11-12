@@ -406,7 +406,7 @@ the top-left corner of the frame to the left."
   (when (> corfu--total 0)
     (if (frame-live-p corfu--frame)
         (progn
-          (corfu-pixel-perfect--refresh-popup corfu--frame nil pos)
+          (corfu-pixel-perfect--refresh-popup corfu--frame pos)
           (unless (frame-visible-p corfu--frame)
             (make-frame-visible corfu--frame)))
       (corfu--compute-scroll)
@@ -515,16 +515,12 @@ the terminal to offset the popup to the left."
          (cands (corfu-pixel-perfect--trim cands)))
     cands))
 
-(defun corfu-pixel-perfect--refresh-popup (frame-or-window &optional limit pos)
+(defun corfu-pixel-perfect--refresh-popup (frame-or-window &optional pos)
   "Refresh popup content.
 
 If FRAME-OR-WINDOW is a frame, the buffer of its root window is
 the target, otherwise FRAME-OR-WINDOW must be a window and the
 target is the buffer in it.
-
-If LIMIT is non-nil, the target buffer is refreshed with that
-many candidates, otherwise it will be populated with as many
-candidates it can fit.
 
 The popup frame is refreshed if and only if POS is non-nil or if
 its size has changed."
@@ -537,7 +533,7 @@ its size has changed."
 
       (let* ((inhibit-redisplay t)
              (ellipsis (buffer-local-value 'corfu-pixel-perfect-ellipsis (current-buffer)))
-             (corfu-count (if limit limit (frame-text-lines frame)))
+             (corfu-count (frame-text-lines frame))
              (corfu--scroll corfu--scroll)
              (corfu--scroll (corfu--compute-scroll))
              (curr (- corfu--index corfu--scroll))
