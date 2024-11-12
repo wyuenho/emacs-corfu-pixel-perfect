@@ -156,7 +156,7 @@ The return value is a `cons' cell where the `car' is the width and
 `cdr' is the height."
   (if (zerop (length string))
       (cons 0 0)
-    (with-current-buffer (get-buffer-create " *corfu--string-pixel-size*")
+    (with-current-buffer (get-buffer-create " *corfu-pixel-perfect--string-pixel-size*" t)
       (setq-local display-line-numbers nil
                   buffer-invisibility-spec nil)
       (delete-region (point-min) (point-max))
