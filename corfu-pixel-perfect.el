@@ -563,7 +563,7 @@ A scroll bar is displayed from LO to LO+BAR."
       (set-window-buffer (frame-root-window frame)
                          (window-buffer (frame-root-window frame))))))
 
-;; FIXME: on macOS, when resizing a frame from top left, the position doesn't
+;; NOTE: on macOS, when resizing a frame from top left, the position doesn't
 ;; change. Fix won't be available until Emacs 31.
 ;; https://debbugs.gnu.org/cgi/bugreport.cgi?bug=74074
 (defun corfu-pixel-perfect--reposition-corfu-popupinfo-frame (frame-or-window)
