@@ -454,15 +454,13 @@ A scroll bar is displayed from LO to LO+BAR."
 
           (insert (string-join
                    (cl-loop for i from 0 to (1- (length lines))
-                            with line = nil
-                            do
-                            (setq line (concat
-                                        ;; add scroll bar at the beginning to
-                                        ;; prevent it from being truncated
-                                        (when (and lo (<= lo i (+ lo bar)))
-                                          sbar)
-                                        (pop lines)))
-                            collect line)
+                            collect
+                            (concat
+                             ;; add scroll bar at the beginning to
+                             ;; prevent it from being truncated
+                             (when (and lo (<= lo i (+ lo bar)))
+                               sbar)
+                             (pop lines)))
                    "\n"))
           (goto-char (point-min)))
 
@@ -553,13 +551,11 @@ A scroll bar is displayed from LO to LO+BAR."
 
             (insert (string-join
                      (cl-loop for i from 0 to (1- (length lines))
-                              with line = nil
-                              do
-                              (setq line (concat
-                                          (when (and lo (<= lo i (+ lo bar)))
-                                            sbar)
-                                          (pop lines)))
-                              collect line)
+                              collect
+                              (concat
+                               (when (and lo (<= lo i (+ lo bar)))
+                                 sbar)
+                               (pop lines)))
                      "\n"))
 
             (goto-char (point-min)))))
