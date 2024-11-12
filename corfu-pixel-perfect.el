@@ -384,7 +384,7 @@ range in a list with 2 elements, nil otherwise."
          (x (max 0 (min (+ (car edge) (- (or (car pos) 0) off border))
                         (- (frame-native-width) (frame-native-width frame)))))
          (yb (+ (cadr edge) (window-tab-line-height) (or (cdr pos) 0) lh))
-         (y (if (> (+ yb (* corfu-count ch) lh lh) (frame-native-height frame))
+         (y (if (> (+ yb (* corfu-count ch) lh lh) (frame-native-height))
                 (- yb height lh border border)
               yb)))
     (list x y)))
