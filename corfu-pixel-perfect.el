@@ -120,22 +120,21 @@ the fringe when you use this option."
 
 (defun corfu-pixel-perfect--make-frame-advice (fn &rest args)
   "Ensure buffer local variables take effect in FRAME."
-  (make-frame-visible
-   (let ((inhibit-redisplay t)
-         ;; Setting the fringe on the frame via buffer local vars is just crazy...
-         (frame (let ((left-fringe-width 0)
-                      (right-fringe-width 0))
-                  (cl-letf (((symbol-function 'make-frame-visible) (symbol-function 'ignore)))
-                    (apply fn args)))))
+  (let ((inhibit-redisplay t)
+        ;; Setting the fringe on the frame via buffer local vars is just crazy...
+        (frame (let ((left-fringe-width 0)
+                     (right-fringe-width 0))
+                 (cl-letf (((symbol-function 'make-frame-visible) (symbol-function 'ignore)))
+                   (apply fn args)))))
 
-     ;; If the buffer had never been shown before, the margin text will not be
-     ;; visible until the frame is visible, so we need to force the window to
-     ;; update again. In addition, if the buffer had been shown before, but has
-     ;; its margin or fringe widths updated, we'll need to set the window buffer
-     ;; again to trigger the update. Virtually no perf hit here.
-     (set-window-buffer (frame-root-window frame) (current-buffer))
+    ;; If the buffer had never been shown before, the margin text will not be
+    ;; visible until the frame is visible, so we need to force the window to
+    ;; update again. In addition, if the buffer had been shown before, but has
+    ;; its margin or fringe widths updated, we'll need to set the window buffer
+    ;; again to trigger the update. Virtually no perf hit here.
+    (set-window-buffer (frame-root-window frame) (current-buffer))
 
-     frame)))
+    frame))
 
 ;; modified from `string-pixel-width' in subr-x.el
 (defun corfu-pixel-perfect--string-pixel-size (string)
