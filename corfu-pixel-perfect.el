@@ -463,6 +463,8 @@ the top-left corner of the frame to the left."
                  (cl-loop for i from 0 to (1- (length lines))
                           collect
                           (concat
+                           ;; prepend scroll bar so it doesn't get truncated
+                           ;; when resizing
                            (when (and lo (<= lo i (+ lo bar)))
                              sbar)
                            (pop lines)))
