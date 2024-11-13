@@ -614,15 +614,15 @@ target is the buffer in it."
   (if corfu-pixel-perfect-mode
       (progn
         (setq corfu-pixel-perfect--corfu--frame-parameters (copy-tree corfu--frame-parameters))
-        (advice-add 'corfu--make-buffer :around 'corfu-pixel-perfect--make-buffer-advice)
-        (advice-add 'corfu--make-frame :around 'corfu-pixel-perfect--make-frame-advice)
-        (advice-add 'corfu--format-candidates :override 'corfu-pixel-perfect--format-candidates)
-        (advice-add 'corfu--candidates-popup :override 'corfu-pixel-perfect--candidates-popup))
+        (advice-add #'corfu--make-buffer :around #'corfu-pixel-perfect--make-buffer-advice)
+        (advice-add #'corfu--make-frame :around #'corfu-pixel-perfect--make-frame-advice)
+        (advice-add #'corfu--format-candidates :override #'corfu-pixel-perfect--format-candidates)
+        (advice-add #'corfu--candidates-popup :override #'corfu-pixel-perfect--candidates-popup))
     (setq corfu--frame-parameters corfu-pixel-perfect--corfu--frame-parameters)
-    (advice-remove 'corfu--make-buffer 'corfu-pixel-perfect--make-buffer-advice)
-    (advice-remove 'corfu--make-frame 'corfu-pixel-perfect--make-frame-advice)
-    (advice-remove 'corfu--format-candidates 'corfu-pixel-perfect--format-candidates)
-    (advice-remove 'corfu--candidates-popup 'corfu-pixel-perfect--candidates-popup)))
+    (advice-remove #'corfu--make-buffer #'corfu-pixel-perfect--make-buffer-advice)
+    (advice-remove #'corfu--make-frame #'corfu-pixel-perfect--make-frame-advice)
+    (advice-remove #'corfu--format-candidates #'corfu-pixel-perfect--format-candidates)
+    (advice-remove #'corfu--candidates-popup #'corfu-pixel-perfect--candidates-popup)))
 
 (provide 'corfu-pixel-perfect)
 
