@@ -137,17 +137,6 @@ the fringe when you use this option."
 
      frame)))
 
-(cl-defmethod corfu--affixate :around (cands &context (corfu-pixel-perfect-mode (eql t)))
-  (let ((result (cl-call-next-method cands)))
-    (cdr result)))
-
-(defun corfu-pixel-perfect--trim (cands)
-  "Trim white space in candidates CANDS."
-  (cl-loop for c in cands do
-           (cl-loop for s in-ref c do
-                    (setf s (string-trim s))))
-  cands)
-
 ;; modified from `string-pixel-width' in subr-x.el
 (defun corfu-pixel-perfect--string-pixel-size (string)
   "Return the size of STRING in pixels.
@@ -180,6 +169,26 @@ COL is one of the following symbols: `candidate', `prefix',
     (corfu-pixel-perfect--string-pixel-width
      (string-join
       (cl-loop for x in cands collect (funcall col-fn x)) "\n"))))
+
+(cl-defmethod corfu--affixate :around (cands &context (corfu-pixel-perfect-mode (eql t)))
+  (let ((result (cl-call-next-method cands)))
+    (cdr result)))
+
+(defun corfu-pixel-perfect--trim (cands)
+  "Trim white space in candidates CANDS."
+  (cl-loop for c in cands do
+           (cl-loop for s in-ref c do
+                    (setf s (string-trim s))))
+  cands)
+
+(defun corfu-pixel-perfect--prepare-candidates ()
+  "Prepare completion candidates for formatting."
+  (let* ((cands (cl-loop repeat corfu-count
+                         for c in (nthcdr corfu--scroll corfu--candidates)
+                         collect (funcall corfu--hilit (substring c))))
+         (cands (corfu--affixate cands))
+         (cands (corfu-pixel-perfect--trim cands)))
+    cands))
 
 (defun corfu-pixel-perfect--hide-annotation-maybe (cands curr)
   "Hide annotation conditionally.
@@ -378,15 +387,6 @@ range in a list with 2 elements, nil otherwise."
     (if (eq ellipsis 'fast)
         (* cw (ceiling corfu-bar-width))
       bw)))
-
-(defun corfu-pixel-perfect--prepare-candidates ()
-  "Prepare completion candidates for formatting."
-  (let* ((cands (cl-loop repeat corfu-count
-                         for c in (nthcdr corfu--scroll corfu--candidates)
-                         collect (funcall corfu--hilit (substring c))))
-         (cands (corfu--affixate cands))
-         (cands (corfu-pixel-perfect--trim cands)))
-    cands))
 
 (defun corfu-pixel-perfect--refresh-buffer (buffer lines)
   "Rerender BUFFER with LINES and refresh scroll bar position."
