@@ -369,6 +369,63 @@ range in a list with 2 elements, nil otherwise."
 (defun corfu-pixel-perfect--show-scroll-bar-p ()
   (not (not (corfu-pixel-perfect--scroll-bar-range))))
 
+(defun corfu-pixel-perfect--bar-pixel-width ()
+  "Scroll bar width in pixels."
+  (let* ((ellipsis (buffer-local-value 'corfu-pixel-perfect-ellipsis (current-buffer)))
+         (cw (default-font-width))
+         (bw (max 0 (min 16 (ceiling (* cw corfu-bar-width))))))
+
+    (if (eq ellipsis 'fast)
+        (* cw (ceiling corfu-bar-width))
+      bw)))
+
+(defun corfu-pixel-perfect--prepare-candidates ()
+  "Prepare completion candidates for formatting."
+  (let* ((cands (cl-loop repeat corfu-count
+                         for c in (nthcdr corfu--scroll corfu--candidates)
+                         collect (funcall corfu--hilit (substring c))))
+         (cands (corfu--affixate cands))
+         (cands (corfu-pixel-perfect--trim cands)))
+    cands))
+
+(defun corfu-pixel-perfect--refresh-buffer (buffer lines)
+  "Rerender BUFFER with LINES and refresh scroll bar position."
+  (pcase-let* ((`(,lo ,bar) (corfu-pixel-perfect--scroll-bar-range))
+               (fw (default-font-width))
+               (bw (corfu-pixel-perfect--bar-pixel-width))
+               (ellipsis (buffer-local-value 'corfu-pixel-perfect-ellipsis (current-buffer)))
+               (sbar (propertize " " 'display
+                                 (if (eq ellipsis 'fast)
+                                     `((margin right-margin)
+                                       ,(propertize (make-string (/ bw fw) ?\s)'face 'corfu-bar))
+                                   '(right-fringe corfu-pixel-perfect-scroll-bar corfu-bar)))))
+    (with-current-buffer buffer
+      (with-silent-modifications
+        (delete-region (point-min) (point-max))
+
+        ;; Adjust margin and fringe when a scroll bar is needed
+        (if lo
+            (if (eq ellipsis 'fast)
+                (setq-local right-margin-width (/ bw fw)
+                            right-fringe-width nil)
+              (setq-local right-fringe-width bw
+                          right-margin-width nil))
+          (setq-local right-margin-width nil
+                      right-fringe-width nil))
+
+        (insert (string-join
+                 (cl-loop for i from 0 to (1- (length lines))
+                          collect
+                          (concat
+                           ;; prepend scroll bar so it doesn't get truncated
+                           ;; when resizing
+                           (when (and lo (<= lo i (+ lo bar)))
+                             sbar)
+                           (pop lines)))
+                 "\n"))
+
+        (goto-char (point-min))))))
+
 (defun corfu-pixel-perfect--set-frame-position (frame pos off)
   "Set FRAME position to POS - OFF.
 
@@ -424,54 +481,6 @@ the top-left corner of the frame to the left."
              (lines (corfu-pixel-perfect--format-candidates cands curr ml mr)))
         (corfu--popup-show pos offset nil lines curr)))))
 
-(defun corfu-pixel-perfect--bar-pixel-width ()
-  "Scroll bar width in pixels."
-  (let* ((ellipsis (buffer-local-value 'corfu-pixel-perfect-ellipsis (current-buffer)))
-         (cw (default-font-width))
-         (bw (max 0 (min 16 (ceiling (* cw corfu-bar-width))))))
-
-    (if (eq ellipsis 'fast)
-        (* cw (ceiling corfu-bar-width))
-      bw)))
-
-(defun corfu-pixel-perfect--refresh-buffer (buffer lines)
-  "Rerender BUFFER with LINES and refresh scroll bar position."
-  (pcase-let* ((`(,lo ,bar) (corfu-pixel-perfect--scroll-bar-range))
-               (fw (default-font-width))
-               (bw (corfu-pixel-perfect--bar-pixel-width))
-               (ellipsis (buffer-local-value 'corfu-pixel-perfect-ellipsis (current-buffer)))
-               (sbar (propertize " " 'display
-                                 (if (eq ellipsis 'fast)
-                                     `((margin right-margin)
-                                       ,(propertize (make-string (/ bw fw) ?\s)'face 'corfu-bar))
-                                   '(right-fringe corfu-pixel-perfect-scroll-bar corfu-bar)))))
-    (with-current-buffer buffer
-      (with-silent-modifications
-        (delete-region (point-min) (point-max))
-
-        ;; Adjust margin and fringe when a scroll bar is needed
-        (if lo
-            (if (eq ellipsis 'fast)
-                (setq-local right-margin-width (/ bw fw)
-                            right-fringe-width nil)
-              (setq-local right-fringe-width bw
-                          right-margin-width nil))
-          (setq-local right-margin-width nil
-                      right-fringe-width nil))
-
-        (insert (string-join
-                 (cl-loop for i from 0 to (1- (length lines))
-                          collect
-                          (concat
-                           ;; prepend scroll bar so it doesn't get truncated
-                           ;; when resizing
-                           (when (and lo (<= lo i (+ lo bar)))
-                             sbar)
-                           (pop lines)))
-                 "\n"))
-
-        (goto-char (point-min))))))
-
 (cl-defmethod corfu--popup-show :around (pos off _ lines
                                              &context (corfu-pixel-perfect-mode (eql t))
                                              &optional _ _ _)
@@ -506,15 +515,6 @@ the terminal to offset the popup to the left."
       (setq corfu--frame (corfu--make-frame corfu--frame 0 0 width height)))
 
     (make-frame-visible (corfu-pixel-perfect--set-frame-position corfu--frame pos off))))
-
-(defun corfu-pixel-perfect--prepare-candidates ()
-  "Prepare completion candidates for formatting."
-  (let* ((cands (cl-loop repeat corfu-count
-                         for c in (nthcdr corfu--scroll corfu--candidates)
-                         collect (funcall corfu--hilit (substring c))))
-         (cands (corfu--affixate cands))
-         (cands (corfu-pixel-perfect--trim cands)))
-    cands))
 
 (defun corfu-pixel-perfect--refresh-popup (frame-or-window &optional pos fit-height)
   "Refresh popup content.
