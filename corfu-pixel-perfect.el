@@ -306,24 +306,18 @@ terminal.
 MR is the left margin padding in pixels on graphical displays or columns on the
 terminal."
   ;; `corfu-current' may affect frame-width too
-  (let ((i 0)
-        (head cands))
-    (while (and head (< i (length cands)) (< i curr))
-      (pop head)
-      (cl-incf i))
+  (when-let* ((selected (car (nthcdr curr cands)))
+              (cand (substring (car selected)))
+              (prefix (substring (cadr selected)))
+              (suffix (substring (caddr selected))))
 
-    (let* ((head (car head))
-           (cand (substring (car head)))
-           (prefix (substring (cadr head)))
-           (suffix (substring (caddr head))))
+    (add-face-text-property 0 (length cand) 'corfu-current t cand)
+    (add-face-text-property 0 (length prefix) 'corfu-current t prefix)
+    (add-face-text-property 0 (length suffix) 'corfu-current t suffix)
 
-      (add-face-text-property 0 (length cand) 'corfu-current t cand)
-      (add-face-text-property 0 (length prefix) 'corfu-current t prefix)
-      (add-face-text-property 0 (length suffix) 'corfu-current t suffix)
-
-      (setf (car head) cand
-            (cadr head) prefix
-            (caddr head) suffix)))
+    (setf (car selected) cand
+          (cadr selected) prefix
+          (caddr selected) suffix))
 
   (let* ((cw (corfu-pixel-perfect--column-pixel-width cands 'candidate))
          (pw (corfu-pixel-perfect--column-pixel-width cands 'prefix))
