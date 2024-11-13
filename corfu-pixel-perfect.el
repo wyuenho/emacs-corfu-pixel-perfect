@@ -120,21 +120,22 @@ the fringe when you use this option."
 
 (defun corfu-pixel-perfect--make-frame-advice (fn &rest args)
   "Ensure buffer local variables take effect in FRAME."
-  (let ((inhibit-redisplay t)
-        ;; Setting the fringe on the frame via buffer local vars is just crazy...
-        (frame (let ((left-fringe-width 0)
-                     (right-fringe-width 0))
-                 (cl-letf (((symbol-function 'make-frame-visible) (symbol-function 'ignore)))
-                   (apply fn args)))))
+  (make-frame-visible
+   (let ((inhibit-redisplay t)
+         ;; Setting the fringe on the frame via buffer local vars is just crazy...
+         (frame (let ((left-fringe-width 0)
+                      (right-fringe-width 0))
+                  (cl-letf (((symbol-function 'make-frame-visible) (symbol-function 'ignore)))
+                    (apply fn args)))))
 
-    ;; If the buffer had never been shown before, the margin text will not be
-    ;; visible until the frame is visible, so we need to force the window to
-    ;; update again. In addition, if the buffer had been shown before, but has
-    ;; its margin or fringe widths updated, we'll need to set the window buffer
-    ;; again to trigger the update. Virtually no perf hit here.
-    (set-window-buffer (frame-root-window frame) (current-buffer))
+     ;; If the buffer had never been shown before, the margin text will not be
+     ;; visible until the frame is visible, so we need to force the window to
+     ;; update again. In addition, if the buffer had been shown before, but has
+     ;; its margin or fringe widths updated, we'll need to set the window buffer
+     ;; again to trigger the update. Virtually no perf hit here.
+     (set-window-buffer (frame-root-window frame) (current-buffer))
 
-    frame))
+     frame)))
 
 (cl-defmethod corfu--affixate :around (cands &context (corfu-pixel-perfect-mode (eql t)))
   (let ((result (cl-call-next-method cands)))
@@ -404,11 +405,9 @@ the top-left corner of the frame to the left."
 (defun corfu-pixel-perfect--candidates-popup (pos)
   "Show candidates popup at POS."
   (when (> corfu--total 0)
-    (if (frame-live-p corfu--frame)
-        (progn
-          (corfu-pixel-perfect--refresh-popup corfu--frame pos)
-          (unless (frame-visible-p corfu--frame)
-            (make-frame-visible corfu--frame)))
+    (if (and (frame-live-p corfu--frame)
+             (frame-visible-p corfu--frame))
+        (corfu-pixel-perfect--refresh-popup corfu--frame pos)
       (corfu--compute-scroll)
       (let* ((curr (- corfu--index corfu--scroll))
              (cands (corfu-pixel-perfect--prepare-candidates))
