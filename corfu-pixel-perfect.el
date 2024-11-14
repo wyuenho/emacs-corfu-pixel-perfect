@@ -169,6 +169,17 @@ COL is one of the following symbols: `candidate', `prefix',
      (string-join
       (cl-loop for x in cands collect (funcall col-fn x)) "\n"))))
 
+(defun corfu-pixel-perfect--add-face-to-triple (face triple)
+  "Apply FACE to the strings in the list TRIPLE.
+
+The result value is a deep copy of TRIPLE in addition to having
+FACE applied to the 3 strings."
+  (mapcar
+   (lambda (s)
+     (add-face-text-property 0 (length s) face t s)
+     s)
+   (mapcar 'substring triple)))
+
 (cl-defmethod corfu--affixate :around (cands &context (corfu-pixel-perfect-mode (eql t)))
   (let ((result (cl-call-next-method cands)))
     (cdr result)))
@@ -305,18 +316,13 @@ terminal.
 MR is the left margin padding in pixels on graphical displays or columns on the
 terminal."
   ;; `corfu-current' may affect frame-width too
-  (when-let* ((selected (car (nthcdr curr cands)))
-              (cand (substring (car selected)))
-              (prefix (substring (cadr selected)))
-              (suffix (substring (caddr selected))))
-
-    (add-face-text-property 0 (length cand) 'corfu-current t cand)
-    (add-face-text-property 0 (length prefix) 'corfu-current t prefix)
-    (add-face-text-property 0 (length suffix) 'corfu-current t suffix)
-
-    (setf (car selected) cand
-          (cadr selected) prefix
-          (caddr selected) suffix))
+  (when-let ((selected (nth curr cands)))
+    (pcase-let ((`(,cand ,prefix ,suffix)
+                 (corfu-pixel-perfect--add-face-to-triple
+                  'corfu-current selected)))
+      (setf (car selected) cand
+            (cadr selected) prefix
+            (caddr selected) suffix)))
 
   (let* ((cw (corfu-pixel-perfect--column-pixel-width cands 'candidate))
          (pw (corfu-pixel-perfect--column-pixel-width cands 'prefix))
