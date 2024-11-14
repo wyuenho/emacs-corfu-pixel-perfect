@@ -191,10 +191,9 @@ FACE applied to the 3 strings."
                     (setf s (string-trim s))))
   cands)
 
-(defun corfu-pixel-perfect--prepare-candidates ()
-  "Prepare completion candidates for formatting."
-  (let* ((cands (cl-loop repeat corfu-count
-                         for c in (nthcdr corfu--scroll corfu--candidates)
+(defun corfu-pixel-perfect--prepare-candidates (cands)
+  "Prepare completion candidates CANDS for formatting."
+  (let* ((cands (cl-loop for c in cands
                          collect (funcall corfu--hilit (substring c))))
          (cands (corfu--affixate cands))
          (cands (corfu-pixel-perfect--trim cands)))
@@ -456,29 +455,74 @@ the top-left corner of the frame to the left."
 
     frame))
 
-;; TODO: now the frame width doesn't fluctuate, we just need to compute
-;; a good enough initial width
+(defun corfu-pixel-perfect--guess-width ()
+  "Estimate a width covering most of the completion candidates.
+
+Assuming the widths of the completion candidate strings form a
+normal distribution, this function samples at most 1/10 of the
+population to calculate an average of averages and an average of
+standard deviations. The value 3 standard deviations greater than
+the mean of means is returned, which should be greater than
+99.86% of the widths."
+  (pcase-let* ((n 30)
+               (N (max 3 (/ corfu--total n 10)))
+               (`(,mean . ,stddev)
+                (cl-loop repeat N
+                         with M = 0
+                         with S = 0
+                         do
+                         (let* ((samples (cl-loop repeat n collect (seq-random-elt corfu--candidates)))
+                                (samples (corfu-pixel-perfect--prepare-candidates samples))
+                                (lengths
+                                 (cl-loop for s in samples
+                                          collect
+                                          (thread-last
+                                            (corfu-pixel-perfect--add-face-to-triple 'corfu-current s)
+                                            (mapcar 'corfu-pixel-perfect--string-pixel-width)
+                                            (apply '+))))
+                                (x-bar (/ (apply '+ lengths) (float n)))
+                                (s (sqrt (/ (cl-loop for l in lengths
+                                                     sum (* (- l x-bar) (- l x-bar)))
+                                            (float (- n 1))))))
+                           (setq M (+ M x-bar)
+                                 S (+ S s)))
+                         finally return (cons (/ M N) (/ S N)))))
+    (ceiling (+ mean (* 3 stddev)))))
+
 (defun corfu-pixel-perfect--candidates-popup (pos)
   "Show candidates popup at POS."
-  (when (> corfu--total 0)
-    (if (and (frame-live-p corfu--frame)
-             (frame-visible-p corfu--frame))
-        (corfu-pixel-perfect--refresh-popup corfu--frame pos t)
-      (corfu--compute-scroll)
-      (let* ((curr (- corfu--index corfu--scroll))
-             (cands (corfu-pixel-perfect--prepare-candidates))
-             (pw (corfu-pixel-perfect--column-pixel-width cands 'prefix))
-             (fw (default-font-width))
-             ;; Disable the left margin if there are prefixes
-             (ml (if (> pw 0) 0 corfu-left-margin-width))
-             (ml (max 0 (ceiling (* fw ml))))
-             (mr (max 0 (ceiling (* fw corfu-right-margin-width))))
-             (offset (+ pw ml))
-             (cands (corfu-pixel-perfect--truncate-from-annotation-maybe cands))
-             (cands (corfu-pixel-perfect--truncate-proportionally-maybe cands))
-             (cands (corfu-pixel-perfect--hide-annotation-maybe cands curr))
-             (lines (corfu-pixel-perfect--format-candidates cands curr ml mr)))
-        (corfu--popup-show pos offset nil lines curr)))))
+  (if (and (frame-live-p corfu--frame)
+           (frame-visible-p corfu--frame))
+      (corfu-pixel-perfect--refresh-popup corfu--frame pos t)
+    (corfu--compute-scroll)
+    (let* ((curr (- corfu--index corfu--scroll))
+           (cands (corfu-pixel-perfect--prepare-candidates
+                   (take corfu-count (nthcdr corfu--scroll corfu--candidates))))
+           (pw (corfu-pixel-perfect--column-pixel-width cands 'prefix))
+           (fw (default-font-width))
+           ;; Disable the left margin if there are prefixes
+           (ml (if (> pw 0) 0 corfu-left-margin-width))
+           (ml (max 0 (ceiling (* fw ml))))
+           (mr (max 0 (ceiling (* fw corfu-right-margin-width))))
+           (offset (+ pw ml))
+           (corfu-min-width
+            (min corfu-max-width
+                 (max corfu-min-width
+                      (/
+                       ;; 90 because it's a multiple of 30 that we rarely get
+                       ;; unless programming in Elisp using a completion style
+                       ;; such as flex, orderless, prescient or flx. 90 also
+                       ;; seems like a number that performance degradation
+                       ;; becomes perceivable.
+                       (if (> corfu--total 90)
+                           (corfu-pixel-perfect--guess-width)
+                         0)
+                       (float fw)))))
+           (cands (corfu-pixel-perfect--truncate-from-annotation-maybe cands))
+           (cands (corfu-pixel-perfect--truncate-proportionally-maybe cands))
+           (cands (corfu-pixel-perfect--hide-annotation-maybe cands curr))
+           (lines (corfu-pixel-perfect--format-candidates cands curr ml mr)))
+      (corfu--popup-show pos offset nil lines curr))))
 
 (cl-defmethod corfu--popup-show :around (pos off _ lines
                                              &context (corfu-pixel-perfect-mode (eql t))
@@ -540,7 +584,8 @@ the height of the content."
                    (corfu--scroll corfu--scroll)
                    (corfu--scroll (corfu--compute-scroll))
                    (curr (- corfu--index corfu--scroll))
-                   (cands (corfu-pixel-perfect--prepare-candidates))
+                   (cands (corfu-pixel-perfect--prepare-candidates
+                           (take corfu-count (nthcdr corfu--scroll corfu--candidates))))
                    (fw (default-font-width))
                    (pw (corfu-pixel-perfect--column-pixel-width cands 'prefix))
                    (ml (if (> pw 0) 0 corfu-left-margin-width))
