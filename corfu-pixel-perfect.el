@@ -479,7 +479,7 @@ the mean of means is returned, which should be greater than
                                           (thread-last
                                             s
                                             (corfu-pixel-perfect--add-face-to-triple 'corfu-current)
-                                            concat
+                                            string-join
                                             corfu-pixel-perfect--string-pixel-width)))
                                 (x-bar (/ (apply '+ lengths) (float n)))
                                 (s (sqrt (/ (cl-loop for l in lengths
