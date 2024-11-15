@@ -584,7 +584,8 @@ the height of the content."
 
       (pcase-let* ((inhibit-redisplay t)
                    (ellipsis corfu-pixel-perfect-ellipsis)
-                   (corfu-count (frame-text-lines frame))
+                   (cands (take corfu-count (nthcdr corfu--scroll corfu--candidates)))
+                   (corfu-count (max (frame-text-lines frame) (length cands)))
                    (corfu--scroll corfu--scroll)
                    (corfu--scroll (corfu--compute-scroll))
                    (curr (- corfu--index corfu--scroll))
