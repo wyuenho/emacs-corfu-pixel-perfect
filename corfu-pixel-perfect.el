@@ -640,6 +640,10 @@ target is the buffer in it."
         (with-selected-frame corfu-popupinfo--frame
           (set-frame-position corfu-popupinfo--frame (+ x width (- border)) y))))))
 
+(defun corfu-popupinfo--show-advice (_)
+  "Make popup info frame visible."
+  (make-frame-visible corfu-popupinfo--frame))
+
 (defvar corfu-pixel-perfect--corfu--frame-parameters nil)
 
 ;;;###autoload
@@ -659,12 +663,14 @@ target is the buffer in it."
         (advice-add #'corfu--make-buffer :around #'corfu-pixel-perfect--make-buffer-advice)
         (advice-add #'corfu--make-frame :around #'corfu-pixel-perfect--make-frame-advice)
         (advice-add #'corfu--format-candidates :override #'corfu-pixel-perfect--format-candidates)
-        (advice-add #'corfu--candidates-popup :override #'corfu-pixel-perfect--candidates-popup))
+        (advice-add #'corfu--candidates-popup :override #'corfu-pixel-perfect--candidates-popup)
+        (advice-add #'corfu-popupinfo--show :after #'corfu-popupinfo--show-advice))
     (setq corfu--frame-parameters corfu-pixel-perfect--corfu--frame-parameters)
     (advice-remove #'corfu--make-buffer #'corfu-pixel-perfect--make-buffer-advice)
     (advice-remove #'corfu--make-frame #'corfu-pixel-perfect--make-frame-advice)
     (advice-remove #'corfu--format-candidates #'corfu-pixel-perfect--format-candidates)
-    (advice-remove #'corfu--candidates-popup #'corfu-pixel-perfect--candidates-popup)))
+    (advice-remove #'corfu--candidates-popup #'corfu-pixel-perfect--candidates-popup)
+    (advice-remove #'corfu-popupinfo--show #'corfu-popupinfo--show-advice)))
 
 (provide 'corfu-pixel-perfect)
 
