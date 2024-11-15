@@ -458,11 +458,10 @@ the top-left corner of the frame to the left."
 (defun corfu-pixel-perfect--guess-width ()
   "Estimate a width covering most of the completion candidates.
 
-Assuming the widths of the completion candidate strings form a
-normal distribution, this function samples at most 1/10 of the
-population to calculate an average of averages and an average of
-standard deviations. The value 3 standard deviations greater than
-the mean of means is returned, which should be greater than
+Using the central limit theorem, this function samples at most
+1/10 of the population to calculate an average of averages and an
+average of standard deviations. The value 3 standard deviations
+above the mean of means is returned, which should be greater than
 99.86% of the widths."
   (pcase-let* ((n 30)
                (N (max 3 (/ corfu--total n 10)))
