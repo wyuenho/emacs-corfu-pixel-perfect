@@ -508,16 +508,14 @@ the mean of means is returned, which should be greater than
            (corfu-min-width
             (min corfu-max-width
                  (max corfu-min-width
-                      (/
-                       ;; 90 because it's a multiple of 30 that we rarely get
-                       ;; unless programming in Elisp using a completion style
-                       ;; such as flex, orderless, prescient or flx. 90 also
-                       ;; seems like a number that performance degradation
-                       ;; becomes perceivable.
-                       (if (> corfu--total 90)
-                           (corfu-pixel-perfect--guess-width)
-                         0)
-                       (float fw)))))
+                      ;; 90 because it's a multiple of 30 that we rarely get
+                      ;; unless programming in Elisp using a completion style
+                      ;; such as flex, orderless, prescient or flx. 90 also
+                      ;; seems like a number that performance degradation
+                      ;; becomes perceivable.
+                      (if (> corfu--total 90)
+                          (/ (corfu-pixel-perfect--guess-width) (float fw))
+                        corfu-min-width))))
            (cands (corfu-pixel-perfect--truncate-from-annotation-maybe cands))
            (cands (corfu-pixel-perfect--truncate-proportionally-maybe cands))
            (cands (corfu-pixel-perfect--hide-annotation-maybe cands curr))
