@@ -477,9 +477,10 @@ the mean of means is returned, which should be greater than
                                  (cl-loop for s in samples
                                           collect
                                           (thread-last
-                                            (corfu-pixel-perfect--add-face-to-triple 'corfu-current s)
-                                            (mapcar 'corfu-pixel-perfect--string-pixel-width)
-                                            (apply '+))))
+                                            s
+                                            (corfu-pixel-perfect--add-face-to-triple 'corfu-current)
+                                            concat
+                                            corfu-pixel-perfect--string-pixel-width)))
                                 (x-bar (/ (apply '+ lengths) (float n)))
                                 (s (sqrt (/ (cl-loop for l in lengths
                                                      sum (* (- l x-bar) (- l x-bar)))
