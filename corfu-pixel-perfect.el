@@ -120,21 +120,22 @@ the fringe when you use this option."
 
 (defun corfu-pixel-perfect--make-frame-advice (fn &rest args)
   "Ensure buffer local variables take effect in FRAME."
-  (let ((inhibit-redisplay t)
-        ;; Setting the fringe on the frame via buffer local vars is just crazy...
-        (frame (let ((left-fringe-width 0)
-                     (right-fringe-width 0))
-                 (cl-letf (((symbol-function 'make-frame-visible) (symbol-function 'ignore)))
-                   (apply fn args)))))
+  (make-frame-visible
+   (let ((inhibit-redisplay t)
+         ;; Setting the fringe on the frame via buffer local vars is just crazy...
+         (frame (let ((left-fringe-width 0)
+                      (right-fringe-width 0))
+                  (cl-letf (((symbol-function 'make-frame-visible) (symbol-function 'ignore)))
+                    (apply fn args)))))
 
-    ;; If the buffer had never been shown before, the margin text will not be
-    ;; visible until the frame is visible, so we need to force the window to
-    ;; update again. In addition, if the buffer had been shown before, but has
-    ;; its margin or fringe widths updated, we'll need to set the window buffer
-    ;; again to trigger the update. Virtually no perf hit here.
-    (set-window-buffer (frame-root-window frame) (current-buffer))
+     ;; If the buffer had never been shown before, the margin text will not be
+     ;; visible until the frame is visible, so we need to force the window to
+     ;; update again. In addition, if the buffer had been shown before, but has
+     ;; its margin or fringe widths updated, we'll need to set the window buffer
+     ;; again to trigger the update. Virtually no perf hit here.
+     (set-window-buffer (frame-root-window frame) (current-buffer))
 
-    frame))
+     frame)))
 
 ;; modified from `string-pixel-width' in subr-x.el
 (defun corfu-pixel-perfect--string-pixel-size (string)
@@ -555,7 +556,9 @@ the terminal to offset the popup to the left."
       (corfu-pixel-perfect--refresh-buffer (current-buffer) lines)
       (setq corfu--frame (corfu--make-frame corfu--frame 0 0 width height)))
 
-    (make-frame-visible (corfu-pixel-perfect--set-frame-position corfu--frame pos off))))
+    (corfu-pixel-perfect--set-frame-position corfu--frame pos off)
+
+    corfu--frame))
 
 (defun corfu-pixel-perfect--refresh-popup (frame-or-window &optional pos fit-height)
   "Refresh popup content.
@@ -640,10 +643,6 @@ target is the buffer in it."
         (with-selected-frame corfu-popupinfo--frame
           (set-frame-position corfu-popupinfo--frame (+ x width (- border)) y))))))
 
-(defun corfu-popupinfo--show-advice (_)
-  "Make popup info frame visible."
-  (make-frame-visible corfu-popupinfo--frame))
-
 (defvar corfu-pixel-perfect--corfu--frame-parameters nil)
 
 ;;;###autoload
@@ -663,14 +662,12 @@ target is the buffer in it."
         (advice-add #'corfu--make-buffer :around #'corfu-pixel-perfect--make-buffer-advice)
         (advice-add #'corfu--make-frame :around #'corfu-pixel-perfect--make-frame-advice)
         (advice-add #'corfu--format-candidates :override #'corfu-pixel-perfect--format-candidates)
-        (advice-add #'corfu--candidates-popup :override #'corfu-pixel-perfect--candidates-popup)
-        (advice-add #'corfu-popupinfo--show :after #'corfu-popupinfo--show-advice))
+        (advice-add #'corfu--candidates-popup :override #'corfu-pixel-perfect--candidates-popup))
     (setq corfu--frame-parameters corfu-pixel-perfect--corfu--frame-parameters)
     (advice-remove #'corfu--make-buffer #'corfu-pixel-perfect--make-buffer-advice)
     (advice-remove #'corfu--make-frame #'corfu-pixel-perfect--make-frame-advice)
     (advice-remove #'corfu--format-candidates #'corfu-pixel-perfect--format-candidates)
-    (advice-remove #'corfu--candidates-popup #'corfu-pixel-perfect--candidates-popup)
-    (advice-remove #'corfu-popupinfo--show #'corfu-popupinfo--show-advice)))
+    (advice-remove #'corfu--candidates-popup #'corfu-pixel-perfect--candidates-popup)))
 
 (provide 'corfu-pixel-perfect)
 
