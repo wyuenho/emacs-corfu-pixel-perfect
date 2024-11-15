@@ -576,7 +576,8 @@ When FIT-HEIGHT is non-nil, resize the height of the frame to fit
 the height of the content."
   (let* ((frame (cond ((framep frame-or-window) frame-or-window)
                       ((windowp frame-or-window) (window-frame frame-or-window))))
-         (frame-buffer (window-buffer (frame-root-window frame))))
+         (win (frame-root-window frame))
+         (buf (window-buffer win)))
 
     (when (and (frame-live-p frame)
                (eq frame corfu--frame)
@@ -609,7 +610,7 @@ the height of the content."
                    (`(,content-width . ,content-height)
                     (corfu-pixel-perfect--string-pixel-size (string-join lines "\n"))))
 
-        (corfu-pixel-perfect--refresh-buffer frame-buffer lines ellipsis)
+        (corfu-pixel-perfect--refresh-buffer buf lines ellipsis)
         (set-frame-parameter frame 'no-special-glyphs
                              (if (eq ellipsis 'fast)
                                  (>= (- (frame-text-width frame) bw) content-width)
@@ -620,6 +621,8 @@ the height of the content."
 
         (when pos
           (corfu-pixel-perfect--set-frame-position frame pos (+ pw ml)))))
+
+    (set-window-buffer win buf)
 
     frame))
 
