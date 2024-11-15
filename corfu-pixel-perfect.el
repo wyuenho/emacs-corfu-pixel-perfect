@@ -496,7 +496,18 @@ above the mean of means is returned, which should be greater than
   "Show candidates popup at POS."
   (if (and (frame-live-p corfu--frame)
            (frame-visible-p corfu--frame))
-      (corfu-pixel-perfect--refresh-popup corfu--frame pos t)
+      (progn
+        (when (eq this-command 'mwheel-scroll)
+          (let* ((event (car (listify-key-sequence (this-command-keys-vector))))
+                 (win (mwheel-event-window event))
+                 (button (event-basic-type event))
+                 (prefix-arg (event-line-count event)))
+            (when (eq win (frame-root-window corfu--frame))
+              (cond ((eq button mouse-wheel-down-event)
+                     (corfu-previous prefix-arg))
+                    ((eq button mouse-wheel-up-event)
+                     (corfu-next prefix-arg))))))
+        (corfu-pixel-perfect--refresh-popup corfu--frame pos t))
     (corfu--compute-scroll)
     (let* ((curr (- corfu--index corfu--scroll))
            (cands (corfu-pixel-perfect--prepare-candidates
@@ -663,11 +674,14 @@ target is the buffer in it."
     (setq corfu--frame nil))
   (if corfu-pixel-perfect-mode
       (progn
+        (cl-pushnew 'mwheel-scroll corfu-continue-commands)
         (setq corfu-pixel-perfect--corfu--frame-parameters (copy-tree corfu--frame-parameters))
+        (setf (alist-get 'no-accept-focus corfu--frame-parameters nil t) nil)
         (advice-add #'corfu--make-buffer :around #'corfu-pixel-perfect--make-buffer-advice)
         (advice-add #'corfu--make-frame :around #'corfu-pixel-perfect--make-frame-advice)
         (advice-add #'corfu--format-candidates :override #'corfu-pixel-perfect--format-candidates)
         (advice-add #'corfu--candidates-popup :override #'corfu-pixel-perfect--candidates-popup))
+    (cl-delete 'mwheel-scroll corfu-continue-commands)
     (setq corfu--frame-parameters corfu-pixel-perfect--corfu--frame-parameters)
     (advice-remove #'corfu--make-buffer #'corfu-pixel-perfect--make-buffer-advice)
     (advice-remove #'corfu--make-frame #'corfu-pixel-perfect--make-frame-advice)
