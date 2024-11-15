@@ -121,19 +121,17 @@ the fringe when you use this option."
 (defun corfu-pixel-perfect--make-frame-advice (fn &rest args)
   "Ensure buffer local variables take effect in FRAME."
   (make-frame-visible
-   (let ((inhibit-redisplay t)
-         ;; Setting the fringe on the frame via buffer local vars is just crazy...
-         (frame (let ((left-fringe-width 0)
-                      (right-fringe-width 0))
-                  (cl-letf (((symbol-function 'make-frame-visible) (symbol-function 'ignore)))
-                    (apply fn args)))))
+   ;; Setting the fringe on the frame via buffer local vars is just crazy...
+   (let* ((left-fringe-width 0)
+          (right-fringe-width 0)
+          (frame (cl-letf (((symbol-function 'make-frame-visible) (symbol-function 'ignore)))
+                   (apply fn args)))
+          (win (frame-root-window frame))
+          (buf (window-buffer win)))
 
-     ;; If the buffer had never been shown before, the margin text will not be
-     ;; visible until the frame is visible, so we need to force the window to
-     ;; update again. In addition, if the buffer had been shown before, but has
-     ;; its margin or fringe widths updated, we'll need to set the window buffer
-     ;; again to trigger the update. Virtually no perf hit here.
-     (set-window-buffer (frame-root-window frame) (current-buffer))
+     ;; Virtually no perf hit here, I have no idea why upstream is guarding it
+     ;; with some complicated frame parameter diff.
+     (set-window-buffer win buf)
 
      frame)))
 
