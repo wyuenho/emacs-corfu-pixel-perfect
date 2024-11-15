@@ -377,22 +377,26 @@ range in a list with 2 elements, nil otherwise."
 (defun corfu-pixel-perfect--show-scroll-bar-p ()
   (not (not (corfu-pixel-perfect--scroll-bar-range))))
 
-(defun corfu-pixel-perfect--bar-pixel-width ()
-  "Scroll bar width in pixels."
-  (let* ((ellipsis (buffer-local-value 'corfu-pixel-perfect-ellipsis (current-buffer)))
-         (cw (default-font-width))
+(defun corfu-pixel-perfect--bar-pixel-width (ellipsis)
+  "Scroll bar width in pixels.
+
+ELLIPSIS is the file buffer's local value of
+`corfu-pixel-perfect-ellipsis'."
+  (let* ((cw (default-font-width))
          (bw (max 0 (min 16 (ceiling (* cw corfu-bar-width))))))
 
     (if (eq ellipsis 'fast)
         (* cw (ceiling corfu-bar-width))
       bw)))
 
-(defun corfu-pixel-perfect--refresh-buffer (buffer lines)
-  "Rerender BUFFER with LINES and refresh scroll bar position."
+(defun corfu-pixel-perfect--refresh-buffer (buffer lines ellipsis)
+  "Rerender BUFFER with LINES and refresh scroll bar position.
+
+ELLIPSIS is the file buffer's local value of
+`corfu-pixel-perfect-ellipsis'."
   (pcase-let* ((`(,lo ,bar) (corfu-pixel-perfect--scroll-bar-range))
                (fw (default-font-width))
-               (bw (corfu-pixel-perfect--bar-pixel-width))
-               (ellipsis (buffer-local-value 'corfu-pixel-perfect-ellipsis (current-buffer)))
+               (bw (corfu-pixel-perfect--bar-pixel-width ellipsis))
                (sbar (propertize " " 'display
                                  (if (eq ellipsis 'fast)
                                      `((margin right-margin)
@@ -532,10 +536,10 @@ the terminal to offset the popup to the left."
   (pcase-let* ((`(,content-width . ,content-height)
                 (corfu-pixel-perfect--string-pixel-size (string-join lines "\n")))
                (lh (default-line-height))
-               (ellipsis (buffer-local-value 'corfu-pixel-perfect-ellipsis (current-buffer)))
+               (ellipsis corfu-pixel-perfect-ellipsis)
                (cw (default-font-width))
                (bw (if (corfu-pixel-perfect--show-scroll-bar-p)
-                       (corfu-pixel-perfect--bar-pixel-width)
+                       (corfu-pixel-perfect--bar-pixel-width ellipsis)
                      0))
                (width (+ bw
                          (if (memq ellipsis '(nil fast))
@@ -553,7 +557,7 @@ the terminal to offset the popup to the left."
             t))
 
     (with-current-buffer (corfu--make-buffer " *corfu*")
-      (corfu-pixel-perfect--refresh-buffer (current-buffer) lines)
+      (corfu-pixel-perfect--refresh-buffer (current-buffer) lines ellipsis)
       (setq corfu--frame (corfu--make-frame corfu--frame 0 0 width height)))
 
     (corfu-pixel-perfect--set-frame-position corfu--frame pos off)
@@ -572,15 +576,16 @@ its size has changed.
 
 When FIT-HEIGHT is non-nil, resize the height of the frame to fit
 the height of the content."
-  (let ((frame (cond ((framep frame-or-window) frame-or-window)
-                     ((windowp frame-or-window) (window-frame frame-or-window)))))
+  (let* ((frame (cond ((framep frame-or-window) frame-or-window)
+                      ((windowp frame-or-window) (window-frame frame-or-window))))
+         (frame-buffer (window-buffer (frame-root-window frame))))
 
     (when (and (frame-live-p frame)
                (eq frame corfu--frame)
                (or (frame-size-changed-p frame) pos))
 
       (pcase-let* ((inhibit-redisplay t)
-                   (ellipsis (buffer-local-value 'corfu-pixel-perfect-ellipsis (current-buffer)))
+                   (ellipsis corfu-pixel-perfect-ellipsis)
                    (corfu-count (frame-text-lines frame))
                    (corfu--scroll corfu--scroll)
                    (corfu--scroll (corfu--compute-scroll))
@@ -593,7 +598,7 @@ the height of the content."
                    (ml (max 0 (ceiling (* fw ml))))
                    (mr (max 0 (ceiling (* fw corfu-right-margin-width))))
                    (bw (if (corfu-pixel-perfect--show-scroll-bar-p)
-                           (corfu-pixel-perfect--bar-pixel-width)
+                           (corfu-pixel-perfect--bar-pixel-width ellipsis)
                          0))
                    ;; keeping this in floating point for precision
                    (corfu-max-width (/ (- (frame-text-width frame) bw ml mr) (float fw)))
@@ -603,11 +608,9 @@ the height of the content."
                    (cands (corfu-pixel-perfect--hide-annotation-maybe cands curr))
                    (lines (corfu-pixel-perfect--format-candidates cands curr ml mr))
                    (`(,content-width . ,content-height)
-                    (corfu-pixel-perfect--string-pixel-size (string-join lines "\n")))
-                   (frame-buffer (window-buffer (frame-root-window frame))))
+                    (corfu-pixel-perfect--string-pixel-size (string-join lines "\n"))))
 
-        (corfu-pixel-perfect--refresh-buffer frame-buffer lines)
-        (set-window-buffer (frame-root-window frame) frame-buffer)
+        (corfu-pixel-perfect--refresh-buffer frame-buffer lines ellipsis)
         (set-frame-parameter frame 'no-special-glyphs
                              (if (eq ellipsis 'fast)
                                  (>= (- (frame-text-width frame) bw) content-width)
