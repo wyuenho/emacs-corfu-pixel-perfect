@@ -661,6 +661,30 @@ target is the buffer in it."
 
 (defvar corfu-pixel-perfect--corfu--frame-parameters nil)
 
+(defun corfu-pixel-perfect--setup (beg end table pred)
+  "Setup Corfu completion state.
+See `completion-in-region' for the arguments BEG, END, TABLE, PRED."
+  (setq beg (if (markerp beg) beg (copy-marker beg))
+        end (if (and (markerp end) (marker-insertion-type end)) end (copy-marker end t))
+        completion-in-region--data (list beg end table pred completion-extra-properties))
+  (completion-in-region-mode 1)
+  (activate-change-group (setq corfu--change-group (prepare-change-group)))
+  (setcdr (assq #'completion-in-region-mode minor-mode-overriding-map-alist) corfu-map)
+  (add-hook 'pre-command-hook #'corfu--prepare nil 'local)
+  (add-hook 'window-selection-change-functions #'corfu--window-change nil 'local)
+  (add-hook 'window-buffer-change-functions #'corfu--window-change nil 'local)
+  (remove-hook 'post-command-hook #'completion-in-region--postch)
+  (remove-hook 'post-command-hook #'corfu--auto-post-command 'local)
+  (add-hook 'post-command-hook #'corfu--post-command nil 'local)
+  (add-hook 'completion-in-region-mode-hook #'corfu-pixel-perfect--teardown nil 'local)
+  (keymap-unset special-event-map "<focus-in>"))
+
+(defun corfu-pixel-perfect--teardown ()
+  (unless completion-in-region-mode
+    (remove-hook 'completion-in-region-mode-hook #'corfu-pixel-perfect--teardown 'local)
+    (funcall 'corfu--teardown (current-buffer))
+    (keymap-set special-event-map "<focus-in>" 'handle-focus-in)))
+
 ;;;###autoload
 (define-minor-mode corfu-pixel-perfect-mode
   "Corfu in pixel perfect alignment."
@@ -680,13 +704,15 @@ target is the buffer in it."
         (advice-add #'corfu--make-buffer :around #'corfu-pixel-perfect--make-buffer-advice)
         (advice-add #'corfu--make-frame :around #'corfu-pixel-perfect--make-frame-advice)
         (advice-add #'corfu--format-candidates :override #'corfu-pixel-perfect--format-candidates)
-        (advice-add #'corfu--candidates-popup :override #'corfu-pixel-perfect--candidates-popup))
+        (advice-add #'corfu--candidates-popup :override #'corfu-pixel-perfect--candidates-popup)
+        (advice-add #'corfu--setup :override #'corfu-pixel-perfect--setup))
     (cl-delete 'mwheel-scroll corfu-continue-commands)
     (setq corfu--frame-parameters corfu-pixel-perfect--corfu--frame-parameters)
     (advice-remove #'corfu--make-buffer #'corfu-pixel-perfect--make-buffer-advice)
     (advice-remove #'corfu--make-frame #'corfu-pixel-perfect--make-frame-advice)
     (advice-remove #'corfu--format-candidates #'corfu-pixel-perfect--format-candidates)
-    (advice-remove #'corfu--candidates-popup #'corfu-pixel-perfect--candidates-popup)))
+    (advice-remove #'corfu--candidates-popup #'corfu-pixel-perfect--candidates-popup)
+    (advice-remove #'corfu--setup #'corfu-pixel-perfect--setup)))
 
 (provide 'corfu-pixel-perfect)
 
