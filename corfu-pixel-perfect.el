@@ -518,13 +518,14 @@ which should be greater than 99.86% of the widths."
           (let* ((event (car (listify-key-sequence (this-command-keys-vector))))
                  (win (mwheel-event-window event))
                  (button (event-basic-type event))
-                 (prefix-arg (event-line-count event)))
+                 (lines (event-line-count event)))
             (when (eq win (frame-root-window corfu--frame))
+              ;; Yes, Emacs maps mouse events upside down...
               (cond ((eq button mouse-wheel-down-event)
-                     (corfu-previous prefix-arg))
+                     (corfu-previous lines))
                     ((eq button mouse-wheel-up-event)
-                     (corfu-next prefix-arg))))))
-        (corfu-pixel-perfect--refresh-popup corfu--frame pos t))
+                     (corfu-next lines))))))
+        (corfu-pixel-perfect--refresh-popup corfu--frame pos))
     (corfu--compute-scroll)
     (let* ((curr (- corfu--index corfu--scroll))
            (cands (corfu-pixel-perfect--prepare-candidates
