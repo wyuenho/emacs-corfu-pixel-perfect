@@ -487,12 +487,12 @@ the top-left corner of the frame to the left."
   "Estimate a width covering most of the completion candidates.
 
 Using the central limit theorem, this function samples at most
-1/10 of the population to calculate an average of averages and an
-average of standard deviations. The value 3 standard deviations
-above the mean of means is returned, which should be greater than
-99.86% of the widths."
-  (pcase-let* ((n 30)
-               (N (max 3 (/ corfu--total n 10)))
+the larger of 100 or 1/10 of the population to calculate an
+average of averages and an average of standard deviations. The
+value 3 standard deviations above the mean of means is returned,
+which should be greater than 99.86% of the widths."
+  (pcase-let* ((n 25)
+               (N (max 4 (/ corfu--total n 10)))
                (`(,mean . ,stddev)
                 (cl-loop repeat N
                          with M = 0
@@ -547,12 +547,12 @@ above the mean of means is returned, which should be greater than
            (corfu-min-width
             (min corfu-max-width
                  (max corfu-min-width
-                      ;; 90 because it's a multiple of 30 that we rarely get
+                      ;; 100 because it's a multiple of 25 that we rarely get
                       ;; unless programming in Elisp using a completion style
-                      ;; such as flex, orderless, prescient or flx. 90 also
+                      ;; such as flex, orderless, prescient or flx. 100 also
                       ;; seems like a number that performance degradation
                       ;; becomes perceivable.
-                      (if (> corfu--total 90)
+                      (if (> corfu--total 100)
                           (/ (corfu-pixel-perfect--guess-width) (float fw))
                         corfu-min-width))))
            (cands (corfu-pixel-perfect--truncate-from-annotation-maybe cands))
