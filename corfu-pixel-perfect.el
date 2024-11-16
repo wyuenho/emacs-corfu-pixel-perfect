@@ -148,7 +148,6 @@ See `completion-in-region' for the arguments BEG, END, TABLE, PRED."
   (add-hook 'window-selection-change-functions #'corfu--window-change nil 'local)
   (add-hook 'window-buffer-change-functions #'corfu--window-change nil 'local)
   (remove-hook 'post-command-hook #'completion-in-region--postch)
-  (remove-hook 'post-command-hook #'corfu--auto-post-command 'local)
   (add-hook 'post-command-hook #'corfu--post-command nil 'local)
   (add-hook 'completion-in-region-mode-hook #'corfu-pixel-perfect--teardown nil 'local)
   (keymap-unset special-event-map "<focus-in>"))
