@@ -452,36 +452,28 @@ ELLIPSIS is the file buffer's local value of
 
         (goto-char (point-min))))))
 
-(defun corfu-pixel-perfect--set-frame-position (frame pos off)
-  "Set FRAME position to POS - OFF.
+(defun corfu-pixel-perfect--compute-frame-position (parent-frame pos off width height)
+  "Compute the popup frame position.
 
-POS is the result of `posn-at-point'.  OFF is the number of
-pixels on graphical displays or columns on the terminal to offset
-the top-left corner of the frame to the left."
-  (let* ((lh (default-line-height))
-         (win (frame-root-window frame))
-         (content-height (with-selected-window win
-                           (cdr (window-text-pixel-size))))
-         (ch (with-current-buffer (window-buffer win)
-               (default-line-height)))
-         (pos (posn-x-y pos))
-         ;; XXX HACK: Minimum popup height must be at least 1 line of the
-         ;; parent frame (gh:minad/corfu#261).
-         (height (max lh content-height))
-         (edge (window-body-pixel-edges))
-         (border (alist-get 'internal-border-width corfu--frame-parameters))
-         (x (max 0 (min (+ (car edge) (- (or (car pos) 0) off border))
-                        (- (frame-native-width) (frame-native-width frame)))))
-         (yb (+ (cadr edge) (window-tab-line-height) (or (cdr pos) 0) lh))
-         (y (if (> (+ yb (* corfu-count ch) lh lh) (frame-native-height))
-                (- yb height lh border border)
-              yb)))
-
-    (pcase-let ((`(,px . ,py) (frame-position frame)))
-      (unless (and (= x px) (= y py))
-        (set-frame-position frame x y)))
-
-    frame))
+PARENT-FRAME is the parent frame of the popup child frame.
+POS is the position at point.
+OFF the is number of pixels on graphical displays or columns in the terminal to
+offset the top left position of the popup.
+WIDTH is the width of the popup frame's text area.
+HEIGHT is the height of the popup frame's text area."
+  (pcase-let* ((lh (with-current-buffer (window-buffer (get-mru-window parent-frame))
+                     (default-line-height)))
+               (ch (default-line-height))
+               (`(,pos-x . ,pos-y) (posn-x-y pos))
+               (`(,left-edge ,top-edge) (window-body-pixel-edges))
+               (border (alist-get 'internal-border-width corfu--frame-parameters))
+               (x (max 0 (min (+ left-edge (- (or pos-x 0) off border))
+                              (- (frame-native-width parent-frame) width))))
+               (yb (+ top-edge (window-tab-line-height) (or pos-y 0) lh))
+               (y (if (> (+ yb (* corfu-count ch) lh lh) (frame-native-height parent-frame))
+                      (- yb height lh border border)
+                    yb)))
+    (cons x y)))
 
 (defun corfu-pixel-perfect--guess-width ()
   "Estimate a width covering most of the completion candidates.
@@ -581,6 +573,8 @@ the terminal to offset the popup to the left."
                              (min (* cw (min (- (frame-width) 4) corfu-max-width)) content-width)
                            ;; anything else the content is already truncated
                            content-width)))
+               ;; XXX HACK: Minimum popup height must be at least 1 line of the
+               ;; parent frame (gh:minad/corfu#261).
                (height (max lh content-height)))
 
     ;; Enable ellipsis when the window text area is shorter than
@@ -592,13 +586,14 @@ the terminal to offset the popup to the left."
 
     (with-current-buffer (corfu--make-buffer " *corfu*")
       (corfu-pixel-perfect--refresh-buffer (current-buffer) lines ellipsis)
-      (setq corfu--frame (corfu--make-frame corfu--frame 0 0 width height)))
-
-    (corfu-pixel-perfect--set-frame-position corfu--frame pos off)
+      (pcase-let ((`(,x . ,y)
+                   (corfu-pixel-perfect--compute-frame-position
+                    (selected-frame) pos off width height)))
+        (setq corfu--frame (corfu--make-frame corfu--frame x y width height))))
 
     corfu--frame))
 
-(defun corfu-pixel-perfect--refresh-popup (frame-or-window &optional pos fit-height)
+(defun corfu-pixel-perfect--refresh-popup (frame-or-window &optional pos)
   "Refresh popup content.
 
 If FRAME-OR-WINDOW is a frame, the buffer of its root window is
@@ -606,10 +601,7 @@ the target, otherwise FRAME-OR-WINDOW must be a window and the
 target is the buffer in it.
 
 The popup frame is refreshed if and only if POS is non-nil or if
-its size has changed.
-
-When FIT-HEIGHT is non-nil, resize the height of the frame to fit
-the height of the content."
+its size has changed."
   (let* ((frame (cond ((framep frame-or-window) frame-or-window)
                       ((windowp frame-or-window) (window-frame frame-or-window))))
          (win (frame-root-window frame))
@@ -644,7 +636,11 @@ the height of the content."
                    (cands (corfu-pixel-perfect--hide-annotation-maybe cands curr))
                    (lines (corfu-pixel-perfect--format-candidates cands curr ml mr))
                    (`(,content-width . ,content-height)
-                    (corfu-pixel-perfect--string-pixel-size (string-join lines "\n"))))
+                    (corfu-pixel-perfect--string-pixel-size (string-join lines "\n")))
+                   (lh (default-line-height))
+                   (height (max lh content-height))
+                   (width (frame-native-width frame))
+                   (parent-frame (frame-parent frame)))
 
         (corfu-pixel-perfect--refresh-buffer buf lines ellipsis)
         (set-frame-parameter frame 'no-special-glyphs
@@ -652,11 +648,15 @@ the height of the content."
                                  (>= (- (frame-text-width frame) bw) content-width)
                                t))
 
-        (when fit-height
-          (set-frame-height frame (max (default-line-height) content-height) nil t))
-
         (when pos
-          (corfu-pixel-perfect--set-frame-position frame pos (+ pw ml)))))
+          (set-frame-height frame height nil t)
+          (pcase-let ((`(,x . ,y)
+                       (with-current-buffer buf
+                         (corfu-pixel-perfect--compute-frame-position
+                          parent-frame pos (+ pw ml) width height)))
+                      (`(,px . ,py) (frame-position frame)))
+            (unless (and (= x px) (= y py))
+              (set-frame-position frame x y))))))
 
     (set-window-buffer win buf)
 
