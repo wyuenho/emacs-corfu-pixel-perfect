@@ -98,7 +98,7 @@ the fringe when you use this option."
     dt)
   "Truncation ellipsis when `corfu-pixel-perfect-ellipsis' is `fast'")
 
-(defun corfu-pixel-perfect--make-buffer-advice (fn &rest args)
+(defun corfu-pixel-perfect--make-buffer (fn &rest args)
   "Set up buffer local variables for pixel perfection."
   (let ((orig-get-buffer-create (symbol-function 'get-buffer-create))
         buffer)
@@ -118,7 +118,7 @@ the fringe when you use this option."
 
     buffer))
 
-(defun corfu-pixel-perfect--make-frame-advice (fn &rest args)
+(defun corfu-pixel-perfect--make-frame (fn &rest args)
   "Ensure buffer local variables take effect in FRAME."
   (make-frame-visible
    ;; Setting the fringe on the frame via buffer local vars is just crazy...
@@ -134,6 +134,32 @@ the fringe when you use this option."
      (set-window-buffer win buf)
 
      frame)))
+
+(defun corfu-pixel-perfect--setup (beg end table pred)
+  "Setup Corfu completion state.
+See `completion-in-region' for the arguments BEG, END, TABLE, PRED."
+  (setq beg (if (markerp beg) beg (copy-marker beg))
+        end (if (and (markerp end) (marker-insertion-type end)) end (copy-marker end t))
+        completion-in-region--data (list beg end table pred completion-extra-properties))
+  (completion-in-region-mode 1)
+  (activate-change-group (setq corfu--change-group (prepare-change-group)))
+  (setcdr (assq #'completion-in-region-mode minor-mode-overriding-map-alist) corfu-map)
+  (add-hook 'pre-command-hook #'corfu--prepare nil 'local)
+  (add-hook 'window-selection-change-functions #'corfu--window-change nil 'local)
+  (add-hook 'window-buffer-change-functions #'corfu--window-change nil 'local)
+  (remove-hook 'post-command-hook #'completion-in-region--postch)
+  (remove-hook 'post-command-hook #'corfu--auto-post-command 'local)
+  (add-hook 'post-command-hook #'corfu--post-command nil 'local)
+  (add-hook 'completion-in-region-mode-hook #'corfu-pixel-perfect--teardown nil 'local)
+  (keymap-unset special-event-map "<focus-in>"))
+
+(defun corfu-pixel-perfect--teardown ()
+  "Teardown Corfu completion state."
+  (unless completion-in-region-mode
+    (remove-hook 'completion-in-region-mode-hook #'corfu-pixel-perfect--teardown 'local)
+    (remove-hook 'post-command-hook #'corfu--post-command 'local)
+    (keymap-set special-event-map "<focus-in>" 'handle-focus-in)
+    (funcall 'corfu--teardown (current-buffer))))
 
 ;; modified from `string-pixel-width' in subr-x.el
 (defun corfu-pixel-perfect--string-pixel-size (string)
@@ -661,30 +687,6 @@ target is the buffer in it."
 
 (defvar corfu-pixel-perfect--corfu--frame-parameters nil)
 
-(defun corfu-pixel-perfect--setup (beg end table pred)
-  "Setup Corfu completion state.
-See `completion-in-region' for the arguments BEG, END, TABLE, PRED."
-  (setq beg (if (markerp beg) beg (copy-marker beg))
-        end (if (and (markerp end) (marker-insertion-type end)) end (copy-marker end t))
-        completion-in-region--data (list beg end table pred completion-extra-properties))
-  (completion-in-region-mode 1)
-  (activate-change-group (setq corfu--change-group (prepare-change-group)))
-  (setcdr (assq #'completion-in-region-mode minor-mode-overriding-map-alist) corfu-map)
-  (add-hook 'pre-command-hook #'corfu--prepare nil 'local)
-  (add-hook 'window-selection-change-functions #'corfu--window-change nil 'local)
-  (add-hook 'window-buffer-change-functions #'corfu--window-change nil 'local)
-  (remove-hook 'post-command-hook #'completion-in-region--postch)
-  (remove-hook 'post-command-hook #'corfu--auto-post-command 'local)
-  (add-hook 'post-command-hook #'corfu--post-command nil 'local)
-  (add-hook 'completion-in-region-mode-hook #'corfu-pixel-perfect--teardown nil 'local)
-  (keymap-unset special-event-map "<focus-in>"))
-
-(defun corfu-pixel-perfect--teardown ()
-  (unless completion-in-region-mode
-    (remove-hook 'completion-in-region-mode-hook #'corfu-pixel-perfect--teardown 'local)
-    (funcall 'corfu--teardown (current-buffer))
-    (keymap-set special-event-map "<focus-in>" 'handle-focus-in)))
-
 ;;;###autoload
 (define-minor-mode corfu-pixel-perfect-mode
   "Corfu in pixel perfect alignment."
@@ -701,15 +703,15 @@ See `completion-in-region' for the arguments BEG, END, TABLE, PRED."
         (cl-pushnew 'mwheel-scroll corfu-continue-commands)
         (setq corfu-pixel-perfect--corfu--frame-parameters (copy-tree corfu--frame-parameters))
         (setf (alist-get 'no-accept-focus corfu--frame-parameters nil t) nil)
-        (advice-add #'corfu--make-buffer :around #'corfu-pixel-perfect--make-buffer-advice)
-        (advice-add #'corfu--make-frame :around #'corfu-pixel-perfect--make-frame-advice)
+        (advice-add #'corfu--make-buffer :around #'corfu-pixel-perfect--make-buffer)
+        (advice-add #'corfu--make-frame :around #'corfu-pixel-perfect--make-frame)
         (advice-add #'corfu--format-candidates :override #'corfu-pixel-perfect--format-candidates)
         (advice-add #'corfu--candidates-popup :override #'corfu-pixel-perfect--candidates-popup)
         (advice-add #'corfu--setup :override #'corfu-pixel-perfect--setup))
     (cl-delete 'mwheel-scroll corfu-continue-commands)
     (setq corfu--frame-parameters corfu-pixel-perfect--corfu--frame-parameters)
-    (advice-remove #'corfu--make-buffer #'corfu-pixel-perfect--make-buffer-advice)
-    (advice-remove #'corfu--make-frame #'corfu-pixel-perfect--make-frame-advice)
+    (advice-remove #'corfu--make-buffer #'corfu-pixel-perfect--make-buffer)
+    (advice-remove #'corfu--make-frame #'corfu-pixel-perfect--make-frame)
     (advice-remove #'corfu--format-candidates #'corfu-pixel-perfect--format-candidates)
     (advice-remove #'corfu--candidates-popup #'corfu-pixel-perfect--candidates-popup)
     (advice-remove #'corfu--setup #'corfu-pixel-perfect--setup)))
