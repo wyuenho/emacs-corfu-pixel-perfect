@@ -100,23 +100,32 @@ the fringe when you use this option."
 
 (defun corfu-pixel-perfect--make-buffer (fn &rest args)
   "Set up buffer local variables for pixel perfection."
-  (let ((orig-get-buffer-create (symbol-function 'get-buffer-create))
-        buffer)
+  (let* ((orig-buffer (current-buffer))
+         (cird completion-in-region--data)
+         (cirm completion-in-region-mode)
+         (orig-get-buffer-create (symbol-function 'get-buffer-create))
+         (new-buffer (cl-letf (((symbol-function 'get-buffer-create)
+                                (lambda (name &optional _)
+                                  (funcall orig-get-buffer-create name t))))
+                       (apply fn args))))
 
-    (cl-letf (((symbol-function 'get-buffer-create)
-               (lambda (name &optional _)
-                 (funcall orig-get-buffer-create name t))))
-      (setq buffer (apply fn args)))
-
-    (with-current-buffer buffer
+    (with-current-buffer new-buffer
       (setq-local buffer-display-table corfu-pixel-perfect--display-table
                   left-fringe-width nil
                   right-fringe-width nil)
-      (add-hook 'window-size-change-functions 'corfu-pixel-perfect--refresh-popup nil t)
+
+      (add-hook 'window-size-change-functions
+                (lambda (window)
+                  (let ((completion-in-region--data cird)
+                        (completion-in-region-mode cirm))
+                    (with-current-buffer orig-buffer
+                      (corfu-pixel-perfect--refresh-popup window))))
+                nil t)
+
       (add-hook 'window-size-change-functions 'corfu-pixel-perfect--reposition-corfu-popupinfo-frame nil t)
       (add-to-invisibility-spec 'corfu-pixel-perfect))
 
-    buffer))
+    new-buffer))
 
 (defun corfu-pixel-perfect--make-frame (fn &rest args)
   "Ensure buffer local variables take effect in FRAME."
@@ -149,15 +158,13 @@ See `completion-in-region' for the arguments BEG, END, TABLE, PRED."
   (add-hook 'window-buffer-change-functions #'corfu--window-change nil 'local)
   (remove-hook 'post-command-hook #'completion-in-region--postch)
   (add-hook 'post-command-hook #'corfu--post-command nil 'local)
-  (add-hook 'completion-in-region-mode-hook #'corfu-pixel-perfect--teardown nil 'local)
-  (keymap-unset special-event-map "<focus-in>"))
+  (add-hook 'completion-in-region-mode-hook #'corfu-pixel-perfect--teardown nil 'local))
 
 (defun corfu-pixel-perfect--teardown ()
   "Teardown Corfu completion state."
   (unless completion-in-region-mode
     (remove-hook 'completion-in-region-mode-hook #'corfu-pixel-perfect--teardown 'local)
     (remove-hook 'post-command-hook #'corfu--post-command 'local)
-    (keymap-set special-event-map "<focus-in>" 'handle-focus-in)
     (funcall 'corfu--teardown (current-buffer))))
 
 ;; modified from `string-pixel-width' in subr-x.el
