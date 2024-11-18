@@ -644,11 +644,7 @@ its size has changed."
                    (cands (corfu-pixel-perfect--hide-annotation-maybe cands curr))
                    (lines (corfu-pixel-perfect--format-candidates cands curr ml mr))
                    (`(,content-width . ,content-height)
-                    (corfu-pixel-perfect--string-pixel-size (string-join lines "\n")))
-                   (lh (default-line-height))
-                   (height (max lh content-height))
-                   (width (frame-native-width frame))
-                   (parent-frame (frame-parent frame)))
+                    (corfu-pixel-perfect--string-pixel-size (string-join lines "\n"))))
 
         (corfu-pixel-perfect--refresh-buffer buf lines ellipsis)
         (set-frame-parameter frame 'no-special-glyphs
@@ -657,12 +653,17 @@ its size has changed."
                                t))
 
         (when pos
-          (set-frame-height frame height nil t)
-          (pcase-let ((`(,x . ,y)
-                       (with-current-buffer buf
-                         (corfu-pixel-perfect--compute-frame-position
-                          parent-frame pos (+ pw ml) width height)))
-                      (`(,px . ,py) (frame-position frame)))
+          (pcase-let* ((parent-frame (frame-parent frame))
+                       (lh (with-selected-frame parent-frame
+                             (default-line-height)))
+                       (height (max lh content-height))
+                       (width (frame-native-width frame))
+                       (`(,x . ,y)
+                        (with-current-buffer buf
+                          (corfu-pixel-perfect--compute-frame-position
+                           parent-frame pos (+ pw ml) width height)))
+                       (`(,px . ,py) (frame-position frame)))
+            (set-frame-height frame height nil t)
             (unless (and (= x px) (= y py))
               (set-frame-position frame x y))))))
 
