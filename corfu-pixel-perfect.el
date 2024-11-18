@@ -109,14 +109,27 @@ the fringe when you use this option."
     dt)
   "Truncation ellipsis when `corfu-pixel-perfect-ellipsis' is `fast'")
 
-;; TODO: handle mouse click
+(defun corfu-pixel-perfect-select-and-insert (event)
+  "Select the candidate under the pointer and insert it.
+
+EVENT is a mouse click event."
+  (interactive "e")
+  (let* ((posn (event-end event))
+         (win (posn-window posn))
+         (pos (posn-point posn)))
+    (when (and (windowp win) (numberp pos))
+      (corfu--goto (+ corfu--scroll (1- (line-number-at-pos pos))))
+      (corfu-insert))))
+
 ;; TODO: send self insert command to parent frame as well
 (defun corfu-pixel-perfect--make-buffer (fn &rest args)
   "Set up buffer local variables for pixel perfection."
   (if (equal (car args) corfu-popupinfo--buffer)
       (apply fn args)
     (let* ((orig-get-buffer-create (symbol-function 'get-buffer-create))
-           (new-buffer (cl-letf (((symbol-function 'get-buffer-create)
+           (new-buffer (cl-letf (((symbol-function 'use-local-map)
+                                  (symbol-function 'ignore))
+                                 ((symbol-function 'get-buffer-create)
                                   (lambda (name &optional _)
                                     (funcall orig-get-buffer-create name t))))
                          (apply fn args))))
@@ -126,7 +139,7 @@ the fringe when you use this option."
                     left-fringe-width nil
                     right-fringe-width nil)
         (add-to-invisibility-spec 'corfu-pixel-perfect)
-
+        (keymap-local-set "<remap> <mouse-set-point>" 'corfu-pixel-perfect-select-and-insert)
         (setq-local mwheel-scroll-up-function 'corfu-next)
         (setq-local mwheel-scroll-down-function 'corfu-previous)
         (setf (alist-get #'corfu-pixel-perfect-mode minor-mode-overriding-map-alist) corfu-map)
