@@ -90,6 +90,16 @@ the fringe when you use this option."
                  (const :tag "Proportional" proportional)
                  (const :tag "None" nil)))
 
+(defgroup corfu-pixel-perfect-faces nil
+  "Faces used by `corfu-pixel-perfect'."
+  :group 'corfu-pixel-perfect
+  :group 'faces)
+
+(defface corfu-pixel-perfect-mouse
+  '((t :inherit highlight))
+  "Face used when hovering on a candidate with a mouse."
+  :group 'corfu-pixel-perfect-faces)
+
 (define-fringe-bitmap 'corfu-pixel-perfect-scroll-bar [])
 
 (defconst corfu-pixel-perfect--display-table
@@ -373,21 +383,29 @@ terminal."
              ;; do not use relative space pixel params as they may lead to wrong
              ;; `string-pixel-width' results
              collect
-             (concat
-              (if (= i curr) current-marginl marginl)
-              prefix
-              (apply 'propertize " "
-                     'display `(space :align-to (,(+ ml pw)))
-                     (if (= i curr) '(face corfu-current)))
-              cand
-              (apply 'propertize " "
-                     'display `(space :align-to (,(+ ml pw cw
-                                                     ;; pads out the string to fit min width
-                                                     (- width (+ pw cw sw))
-                                                     (- sw (corfu-pixel-perfect--string-pixel-width suffix)))))
-                     (if (= i curr) '(face corfu-current)))
-              suffix
-              (if (= i curr) current-marginr marginr)))))
+             (let ((line
+                    (concat
+                     (if (= i curr) current-marginl marginl)
+                     (substring prefix)
+                     (apply 'propertize " "
+                            'display `(space :align-to (,(+ ml pw)))
+                            (if (= i curr) '(face corfu-current)))
+                     cand
+                     (apply 'propertize " "
+                            'display `(space :align-to (,(+ ml pw cw
+                                                            ;; pads out the string to fit min width
+                                                            (- width (+ pw cw sw))
+                                                            (- sw (corfu-pixel-perfect--string-pixel-width suffix)))))
+                            (if (= i curr) '(face corfu-current)))
+                     suffix
+                     (if (= i curr) current-marginr marginr))))
+
+               (add-text-properties
+                0 (length line)
+                '(mouse-face corfu-pixel-perfect-mouse pointer hand)
+                line)
+
+               line))))
 
 (defun corfu-pixel-perfect--scroll-bar-range ()
   "Return the range of the scroll bar.
