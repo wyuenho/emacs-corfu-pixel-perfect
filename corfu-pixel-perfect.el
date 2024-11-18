@@ -33,6 +33,7 @@
 ;;; Code:
 
 (require 'corfu)
+(require 'corfu-popupinfo)
 (require 'mule-util)
 (eval-when-compile
   (require 'cl-lib)
@@ -108,34 +109,33 @@ the fringe when you use this option."
     dt)
   "Truncation ellipsis when `corfu-pixel-perfect-ellipsis' is `fast'")
 
+;; TODO: handle mouse click
+;; TODO: send self insert command to parent frame as well
 (defun corfu-pixel-perfect--make-buffer (fn &rest args)
   "Set up buffer local variables for pixel perfection."
-  (let* ((orig-buffer (current-buffer))
-         (cird completion-in-region--data)
-         (cirm completion-in-region-mode)
-         (orig-get-buffer-create (symbol-function 'get-buffer-create))
-         (new-buffer (cl-letf (((symbol-function 'get-buffer-create)
-                                (lambda (name &optional _)
-                                  (funcall orig-get-buffer-create name t))))
-                       (apply fn args))))
+  (if (equal (car args) corfu-popupinfo--buffer)
+      (apply fn args)
+    (let* ((orig-get-buffer-create (symbol-function 'get-buffer-create))
+           (new-buffer (cl-letf (((symbol-function 'get-buffer-create)
+                                  (lambda (name &optional _)
+                                    (funcall orig-get-buffer-create name t))))
+                         (apply fn args))))
 
-    (with-current-buffer new-buffer
-      (setq-local buffer-display-table corfu-pixel-perfect--display-table
-                  left-fringe-width nil
-                  right-fringe-width nil)
+      (with-current-buffer new-buffer
+        (setq-local buffer-display-table corfu-pixel-perfect--display-table
+                    left-fringe-width nil
+                    right-fringe-width nil)
+        (add-to-invisibility-spec 'corfu-pixel-perfect)
 
-      (add-hook 'window-size-change-functions
-                (lambda (window)
-                  (let ((completion-in-region--data cird)
-                        (completion-in-region-mode cirm))
-                    (with-current-buffer orig-buffer
-                      (corfu-pixel-perfect--refresh-popup window))))
-                nil t)
+        (setq-local mwheel-scroll-up-function 'corfu-next)
+        (setq-local mwheel-scroll-down-function 'corfu-previous)
+        (setf (alist-get #'corfu-pixel-perfect-mode minor-mode-overriding-map-alist) corfu-map)
+        (add-hook 'window-size-change-functions 'corfu-pixel-perfect--refresh-popup nil 'local)
+        (add-hook 'window-size-change-functions 'corfu-pixel-perfect--reposition-corfu-popupinfo-frame nil 'local)
+        (add-hook 'pre-command-hook 'corfu--prepare nil 'local)
+        (add-hook 'post-command-hook 'corfu--post-command nil 'local))
 
-      (add-hook 'window-size-change-functions 'corfu-pixel-perfect--reposition-corfu-popupinfo-frame nil t)
-      (add-to-invisibility-spec 'corfu-pixel-perfect))
-
-    new-buffer))
+      new-buffer)))
 
 (defun corfu-pixel-perfect--make-frame (fn &rest args)
   "Ensure buffer local variables take effect in FRAME."
@@ -143,6 +143,9 @@ the fringe when you use this option."
    ;; Setting the fringe on the frame via buffer local vars is just crazy...
    (let* ((left-fringe-width 0)
           (right-fringe-width 0)
+          (default-minibuffer-frame (selected-frame))
+          ;; (x-pointer-shape (if (boundp 'x-pointer-hand1) x-pointer-hand1))
+          ;; (x-sensitive-text-pointer-shape x-pointer-shape)
           (frame (cl-letf (((symbol-function 'make-frame-visible) (symbol-function 'ignore)))
                    (apply fn args)))
           (win (frame-root-window frame))
@@ -154,18 +157,83 @@ the fringe when you use this option."
 
      frame)))
 
+(defconst corfu-pixel-perfect--adviced-functions
+  '(corfu--update
+    corfu--range-valid-p
+    corfu--continue-p
+    corfu--exhibit
+    corfu--auto-post-command
+    corfu--auto-complete-deferred
+    corfu--auto-tick
+    corfu--replace
+    corfu--done
+    corfu--insert
+    corfu-pixel-perfect--refresh-popup))
+
+(defun corfu-pixel-perfect--wrap-functions (fns)
+  "Add wrapper to the list of functions FNS.
+
+The wrapper will ensure when the functions are called, the
+selected frame, window and the current buffer will always be ones
+that triggered the popup."
+  (let* ((frame (selected-frame))
+         (win (selected-window))
+         (buf (current-buffer))
+         (advice (lambda (fn &rest args)
+                   (when (and (frame-live-p frame)
+                              (frame-visible-p frame)
+                              (window-live-p win)
+                              (buffer-live-p buf))
+                     (with-selected-frame frame
+                       (with-selected-window win
+                         (with-current-buffer buf
+                           (apply fn args))))))))
+    (while fns
+      (advice-add (pop fns) :around advice '((name . "corfu-pixel-perfect-wrapper"))))))
+
+(defun corfu-pixel-perfect--unwrap-functions (fns)
+  "Remove wrapper from the list of functions FNS."
+  (while fns
+    (advice-remove (pop fns) "corfu-pixel-perfect-wrapper")))
+
+(defun corfu-pixel-perfect--commands (keymap)
+  "Return a list of all the commands in KEYMAP."
+  (cl-loop for _ being the key-codes of keymap
+           using (key-bindings b)
+           append
+           (cond ((keymapp b)
+                  (corfu-pixel-perfect--commands b))
+                 ((commandp b) (list b)))))
+
+(defun corfu-pixel-perfect--window-change (window)
+  "Window and buffer change hook which quits Corfu.
+
+Quits the pop up if WINDOW is not the origin buffer window or the
+popup frame window."
+  (if (and (frame-live-p corfu--frame)
+           (frame-visible-p corfu--frame)
+           (not (eq (selected-window) (frame-root-window corfu--frame)))
+           (not (eq (selected-window) window)))
+      (corfu-quit)
+    (corfu--window-change window)))
+
 (defun corfu-pixel-perfect--setup (beg end table pred)
   "Setup Corfu completion state.
 See `completion-in-region' for the arguments BEG, END, TABLE, PRED."
   (setq beg (if (markerp beg) beg (copy-marker beg))
         end (if (and (markerp end) (marker-insertion-type end)) end (copy-marker end t))
         completion-in-region--data (list beg end table pred completion-extra-properties))
+
+  (corfu-pixel-perfect--wrap-functions
+   (append corfu-pixel-perfect--adviced-functions
+           (corfu-pixel-perfect--commands corfu-map)))
+
   (completion-in-region-mode 1)
   (activate-change-group (setq corfu--change-group (prepare-change-group)))
   (setcdr (assq #'completion-in-region-mode minor-mode-overriding-map-alist) corfu-map)
   (add-hook 'pre-command-hook #'corfu--prepare nil 'local)
-  (add-hook 'window-selection-change-functions #'corfu--window-change nil 'local)
-  (add-hook 'window-buffer-change-functions #'corfu--window-change nil 'local)
+  (add-hook 'window-selection-change-functions #'corfu-pixel-perfect--window-change nil 'local)
+  (add-hook 'window-buffer-change-functions #'corfu-pixel-perfect--window-change nil 'local)
   (remove-hook 'post-command-hook #'completion-in-region--postch)
   (add-hook 'post-command-hook #'corfu--post-command nil 'local)
   (add-hook 'completion-in-region-mode-hook #'corfu-pixel-perfect--teardown nil 'local))
@@ -173,6 +241,11 @@ See `completion-in-region' for the arguments BEG, END, TABLE, PRED."
 (defun corfu-pixel-perfect--teardown ()
   "Teardown Corfu completion state."
   (unless completion-in-region-mode
+
+    (corfu-pixel-perfect--unwrap-functions
+     (append corfu-pixel-perfect--adviced-functions
+             (corfu-pixel-perfect--commands corfu-map)))
+
     (remove-hook 'completion-in-region-mode-hook #'corfu-pixel-perfect--teardown 'local)
     (remove-hook 'post-command-hook #'corfu--post-command 'local)
     (funcall 'corfu--teardown (current-buffer))))
@@ -536,48 +609,54 @@ which should be greater than 99.86% of the widths."
 
 (defun corfu-pixel-perfect--candidates-popup (pos)
   "Show candidates popup at POS."
-  (if (and (frame-live-p corfu--frame)
-           (frame-visible-p corfu--frame))
-      (progn
-        (when (eq this-command 'mwheel-scroll)
-          (let* ((event (car (listify-key-sequence (this-command-keys-vector))))
-                 (win (mwheel-event-window event))
-                 (button (event-basic-type event))
-                 (lines (event-line-count event)))
-            (when (eq win (frame-root-window corfu--frame))
-              ;; Yes, Emacs maps mouse events upside down...
-              (cond ((eq button mouse-wheel-down-event)
-                     (corfu-previous lines))
-                    ((eq button mouse-wheel-up-event)
-                     (corfu-next lines))))))
-        (corfu-pixel-perfect--refresh-popup corfu--frame pos))
-    (corfu--compute-scroll)
-    (let* ((curr (- corfu--index corfu--scroll))
-           (cands (corfu-pixel-perfect--prepare-candidates
-                   (take corfu-count (nthcdr corfu--scroll corfu--candidates))))
-           (pw (corfu-pixel-perfect--column-pixel-width cands 'prefix))
-           (fw (default-font-width))
-           ;; Disable the left margin if there are prefixes
-           (ml (if (> pw 0) 0 corfu-left-margin-width))
-           (ml (max 0 (ceiling (* fw ml))))
-           (mr (max 0 (ceiling (* fw corfu-right-margin-width))))
-           (offset (+ pw ml))
-           (corfu-min-width
-            (min corfu-max-width
-                 (max corfu-min-width
-                      ;; 100 because it's a multiple of 25 that we rarely get
-                      ;; unless programming in Elisp using a completion style
-                      ;; such as flex, orderless, prescient or flx. 100 also
-                      ;; seems like a number that performance degradation
-                      ;; becomes perceivable.
-                      (if (> corfu--total 100)
-                          (/ (corfu-pixel-perfect--guess-width) (float fw))
-                        corfu-min-width))))
-           (cands (corfu-pixel-perfect--truncate-from-annotation-maybe cands))
-           (cands (corfu-pixel-perfect--truncate-proportionally-maybe cands))
-           (cands (corfu-pixel-perfect--hide-annotation-maybe cands curr))
-           (lines (corfu-pixel-perfect--format-candidates cands curr ml mr)))
-      (corfu--popup-show pos offset nil lines curr))))
+  (cond ((eq (selected-frame) corfu--frame)
+         (corfu-pixel-perfect--refresh-popup corfu--frame))
+
+        ((and (frame-live-p corfu--frame)
+              (frame-visible-p corfu--frame))
+
+         (when (eq this-command 'mwheel-scroll)
+           (let* ((event (car (listify-key-sequence (this-command-keys-vector))))
+                  (win (mwheel-event-window event))
+                  (button (event-basic-type event))
+                  (lines (event-line-count event)))
+             (when (eq win (frame-root-window corfu--frame))
+               ;; Yes, Emacs maps mouse events upside down...
+               (cond ((eq button mouse-wheel-down-event)
+                      (corfu-previous lines))
+                     ((eq button mouse-wheel-up-event)
+                      (corfu-next lines))))))
+
+         (corfu-pixel-perfect--refresh-popup corfu--frame pos))
+
+        (t
+         (corfu--compute-scroll)
+         (let* ((curr (- corfu--index corfu--scroll))
+                (cands (corfu-pixel-perfect--prepare-candidates
+                        (take corfu-count (nthcdr corfu--scroll corfu--candidates))))
+                (pw (corfu-pixel-perfect--column-pixel-width cands 'prefix))
+                (fw (default-font-width))
+                ;; Disable the left margin if there are prefixes
+                (ml (if (> pw 0) 0 corfu-left-margin-width))
+                (ml (max 0 (ceiling (* fw ml))))
+                (mr (max 0 (ceiling (* fw corfu-right-margin-width))))
+                (offset (+ pw ml))
+                (corfu-min-width
+                 (min corfu-max-width
+                      (max corfu-min-width
+                           ;; 100 because it's a multiple of 25 that we rarely get
+                           ;; unless programming in Elisp using a completion style
+                           ;; such as flex, orderless, prescient or flx. 100 also
+                           ;; seems like a number that performance degradation
+                           ;; becomes perceivable.
+                           (if (> corfu--total 100)
+                               (/ (corfu-pixel-perfect--guess-width) (float fw))
+                             corfu-min-width))))
+                (cands (corfu-pixel-perfect--truncate-from-annotation-maybe cands))
+                (cands (corfu-pixel-perfect--truncate-proportionally-maybe cands))
+                (cands (corfu-pixel-perfect--hide-annotation-maybe cands curr))
+                (lines (corfu-pixel-perfect--format-candidates cands curr ml mr)))
+           (corfu--popup-show pos offset nil lines curr)))))
 
 (cl-defmethod corfu--popup-show :around (pos off _ lines
                                              &context (corfu-pixel-perfect-mode (eql t))
@@ -619,7 +698,18 @@ the terminal to offset the popup to the left."
 
     corfu--frame))
 
-(defun corfu-pixel-perfect--refresh-popup (frame-or-window &optional pos)
+;; (cl-defmethod corfu--popup-hide :around (&context (corfu-pixel-perfect-mode (eql t)))
+;;   "Put focus back to the parent frame if the selected frame is the popup frame."
+;;   (let* ((frame (selected-frame))
+;;          (parent (frame-parent frame))
+;;          (result (cl-call-next-method)))
+;;     (when (or (not (frame-live-p corfu--frame))
+;;               (and (eq frame corfu--frame)
+;;                    (not (frame-visible-p frame))))
+;;       (select-frame-set-input-focus parent))
+;;     result))
+
+(defun corfu-pixel-perfect--refresh-popup (frame-or-window &optional pos force)
   "Refresh popup content.
 
 If FRAME-OR-WINDOW is a frame, the buffer of its root window is
@@ -635,7 +725,7 @@ its size has changed."
 
     (when (and (frame-live-p frame)
                (eq frame corfu--frame)
-               (or (frame-size-changed-p frame) pos))
+               (or (frame-size-changed-p frame) pos force))
 
       (pcase-let* ((inhibit-redisplay t)
                    (ellipsis corfu-pixel-perfect-ellipsis)
@@ -711,6 +801,10 @@ target is the buffer in it."
         (with-selected-frame corfu-popupinfo--frame
           (set-frame-position corfu-popupinfo--frame (+ x width (- border)) y))))))
 
+(defun corfu-pixel-perfect--hide-frame-deferred (frame)
+  "Set focus back to the parent of the popup FRAME."
+  (select-frame-set-input-focus (frame-parent frame)))
+
 (defvar corfu-pixel-perfect--corfu--frame-parameters nil)
 
 ;;;###autoload
@@ -727,20 +821,24 @@ target is the buffer in it."
   (if corfu-pixel-perfect-mode
       (progn
         (cl-pushnew 'mwheel-scroll corfu-continue-commands)
+        (cl-pushnew 'handle-switch-frame corfu-continue-commands)
         (setq corfu-pixel-perfect--corfu--frame-parameters (copy-tree corfu--frame-parameters))
         (setf (alist-get 'no-accept-focus corfu--frame-parameters nil t) nil)
         (advice-add #'corfu--make-buffer :around #'corfu-pixel-perfect--make-buffer)
         (advice-add #'corfu--make-frame :around #'corfu-pixel-perfect--make-frame)
         (advice-add #'corfu--format-candidates :override #'corfu-pixel-perfect--format-candidates)
         (advice-add #'corfu--candidates-popup :override #'corfu-pixel-perfect--candidates-popup)
-        (advice-add #'corfu--setup :override #'corfu-pixel-perfect--setup))
+        (advice-add #'corfu--setup :override #'corfu-pixel-perfect--setup)
+        (advice-add #'corfu--hide-frame-deferred :after #'corfu-pixel-perfect--hide-frame-deferred))
     (cl-delete 'mwheel-scroll corfu-continue-commands)
+    (cl-delete 'handle-switch-frame corfu-continue-commands)
     (setq corfu--frame-parameters corfu-pixel-perfect--corfu--frame-parameters)
     (advice-remove #'corfu--make-buffer #'corfu-pixel-perfect--make-buffer)
     (advice-remove #'corfu--make-frame #'corfu-pixel-perfect--make-frame)
     (advice-remove #'corfu--format-candidates #'corfu-pixel-perfect--format-candidates)
     (advice-remove #'corfu--candidates-popup #'corfu-pixel-perfect--candidates-popup)
-    (advice-remove #'corfu--setup #'corfu-pixel-perfect--setup)))
+    (advice-remove #'corfu--setup #'corfu-pixel-perfect--setup)
+    (advice-remove #'corfu--hide-frame-deferred #'corfu-pixel-perfect--hide-frame-deferred)))
 
 (provide 'corfu-pixel-perfect)
 
