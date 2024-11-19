@@ -145,8 +145,6 @@ EVENT is a mouse click event."
                     global-hl-line-mode nil)
         (add-to-invisibility-spec 'corfu-pixel-perfect)
         (use-local-map corfu-pixel-perfect-mouse-map)
-        (setq-local mwheel-scroll-up-function 'corfu-next)
-        (setq-local mwheel-scroll-down-function 'corfu-previous)
         (setf (alist-get #'corfu-pixel-perfect-mode minor-mode-overriding-map-alist) corfu-map)
         (add-hook 'window-size-change-functions 'corfu-pixel-perfect--refresh-popup nil 'local)
         (add-hook 'window-size-change-functions 'corfu-pixel-perfect--reposition-corfu-popupinfo-frame nil 'local)
