@@ -262,6 +262,8 @@ See `completion-in-region' for the arguments BEG, END, TABLE, PRED."
      (append corfu-pixel-perfect--adviced-functions
              (corfu-pixel-perfect--commands corfu-map)))
 
+    (remove-hook 'window-selection-change-functions #'corfu-pixel-perfect--window-change 'local)
+    (remove-hook 'window-buffer-change-functions #'corfu-pixel-perfect--window-change 'local)
     (remove-hook 'completion-in-region-mode-hook #'corfu-pixel-perfect--teardown 'local)
     (remove-hook 'post-command-hook #'corfu--post-command 'local)
     (funcall 'corfu--teardown (current-buffer))))
