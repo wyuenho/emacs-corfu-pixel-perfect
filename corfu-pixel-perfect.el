@@ -299,8 +299,7 @@ COL is one of the following symbols: `candidate', `prefix',
                       ((eq 'prefix col) 'cadr)
                       ((eq 'annotation col) 'caddr))))
     (corfu-pixel-perfect--string-pixel-width
-     (string-join
-      (cl-loop for x in cands collect (funcall col-fn x)) "\n"))))
+     (string-join (mapcar col-fn cands) "\n"))))
 
 (defun corfu-pixel-perfect--add-face-to-triple (face triple)
   "Apply FACE to the strings in the list TRIPLE.
