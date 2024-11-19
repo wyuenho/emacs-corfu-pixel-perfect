@@ -711,17 +711,6 @@ the terminal to offset the popup to the left."
 
     corfu--frame))
 
-;; (cl-defmethod corfu--popup-hide :around (&context (corfu-pixel-perfect-mode (eql t)))
-;;   "Put focus back to the parent frame if the selected frame is the popup frame."
-;;   (let* ((frame (selected-frame))
-;;          (parent (frame-parent frame))
-;;          (result (cl-call-next-method)))
-;;     (when (or (not (frame-live-p corfu--frame))
-;;               (and (eq frame corfu--frame)
-;;                    (not (frame-visible-p frame))))
-;;       (select-frame-set-input-focus parent))
-;;     result))
-
 (defun corfu-pixel-perfect--refresh-popup (frame-or-window &optional pos force)
   "Refresh popup content.
 
