@@ -118,8 +118,15 @@ EVENT is a mouse click event."
          (win (posn-window posn))
          (pos (posn-point posn)))
     (when (and (windowp win) (numberp pos))
+      (corfu--compute-scroll)
       (corfu--goto (+ corfu--scroll (1- (line-number-at-pos pos))))
       (corfu-insert))))
+
+(defvar-keymap corfu-pixel-perfect-mouse-map
+  :doc "Allow mouse click for candidate selection."
+  :parent corfu--mouse-ignore-map
+  "<mouse-1>" #'corfu-pixel-perfect-select-and-insert
+  "C-M-<mouse-1>" #'corfu-pixel-perfect-select-and-insert)
 
 ;; TODO: send self insert command to parent frame as well
 (defun corfu-pixel-perfect--make-buffer (fn &rest args)
@@ -127,9 +134,7 @@ EVENT is a mouse click event."
   (if (equal (car args) corfu-popupinfo--buffer)
       (apply fn args)
     (let* ((orig-get-buffer-create (symbol-function 'get-buffer-create))
-           (new-buffer (cl-letf (((symbol-function 'use-local-map)
-                                  (symbol-function 'ignore))
-                                 ((symbol-function 'get-buffer-create)
+           (new-buffer (cl-letf (((symbol-function 'get-buffer-create)
                                   (lambda (name &optional _)
                                     (funcall orig-get-buffer-create name t))))
                          (apply fn args))))
@@ -139,7 +144,7 @@ EVENT is a mouse click event."
                     left-fringe-width nil
                     right-fringe-width nil)
         (add-to-invisibility-spec 'corfu-pixel-perfect)
-        (keymap-local-set "<remap> <mouse-set-point>" 'corfu-pixel-perfect-select-and-insert)
+        (use-local-map corfu-pixel-perfect-mouse-map)
         (setq-local mwheel-scroll-up-function 'corfu-next)
         (setq-local mwheel-scroll-down-function 'corfu-previous)
         (setf (alist-get #'corfu-pixel-perfect-mode minor-mode-overriding-map-alist) corfu-map)
