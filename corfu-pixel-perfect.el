@@ -118,7 +118,6 @@ EVENT is a mouse click event."
          (win (posn-window posn))
          (pos (posn-point posn)))
     (when (and (windowp win) (numberp pos))
-      (corfu--compute-scroll)
       (corfu--goto (+ corfu--scroll (1- (line-number-at-pos pos))))
       (corfu-insert))))
 
@@ -738,7 +737,6 @@ its size has changed."
                    (ellipsis corfu-pixel-perfect-ellipsis)
                    (cands (take corfu-count (nthcdr corfu--scroll corfu--candidates)))
                    (corfu-count (max (frame-text-lines frame) (length cands)))
-                   (corfu--scroll corfu--scroll)
                    (corfu--scroll (corfu--compute-scroll))
                    (curr (- corfu--index corfu--scroll))
                    (cands (corfu-pixel-perfect--prepare-candidates
