@@ -127,12 +127,14 @@ EVENT is a mouse click event."
   "<mouse-1>" #'corfu-pixel-perfect-select-and-insert
   "C-M-<mouse-1>" #'corfu-pixel-perfect-select-and-insert)
 
-;; TODO: send self insert command to parent frame as well
 (defun corfu-pixel-perfect--make-buffer (fn &rest args)
   "Set up buffer local variables for pixel perfection."
   (if (equal (car args) corfu-popupinfo--buffer)
       (apply fn args)
-    (let* ((orig-get-buffer-create (symbol-function 'get-buffer-create))
+    (let* ((orig-frame (selected-frame))
+           (orig-win (selected-window))
+           (orig-buf (current-buffer))
+           (orig-get-buffer-create (symbol-function 'get-buffer-create))
            (new-buffer (cl-letf (((symbol-function 'get-buffer-create)
                                   (lambda (name &optional _)
                                     (funcall orig-get-buffer-create name t))))
@@ -145,6 +147,13 @@ EVENT is a mouse click event."
                     global-hl-line-mode nil)
         (add-to-invisibility-spec 'corfu-pixel-perfect)
         (use-local-map corfu-pixel-perfect-mouse-map)
+        (keymap-local-set "<remap> <self-insert-command>"
+                          (lambda (n &optional c)
+                            (interactive (list (prefix-numeric-value current-prefix-arg) last-command-event))
+                            (with-selected-frame orig-frame
+                              (with-selected-window orig-win
+                                (with-current-buffer orig-buf
+                                  (self-insert-command n c))))))
         (setf (alist-get #'corfu-pixel-perfect-mode minor-mode-overriding-map-alist) corfu-map)
         (add-hook 'window-size-change-functions 'corfu-pixel-perfect--refresh-popup nil 'local)
         (add-hook 'window-size-change-functions 'corfu-pixel-perfect--reposition-corfu-popupinfo-frame nil 'local)
