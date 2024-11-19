@@ -142,7 +142,8 @@ EVENT is a mouse click event."
       (with-current-buffer new-buffer
         (setq-local buffer-display-table corfu-pixel-perfect--display-table
                     left-fringe-width nil
-                    right-fringe-width nil)
+                    right-fringe-width nil
+                    global-hl-line-mode nil)
         (add-to-invisibility-spec 'corfu-pixel-perfect)
         (use-local-map corfu-pixel-perfect-mouse-map)
         (setq-local mwheel-scroll-up-function 'corfu-next)
