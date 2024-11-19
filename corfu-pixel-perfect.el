@@ -155,6 +155,8 @@ EVENT is a mouse click event."
                                 (with-current-buffer orig-buf
                                   (self-insert-command n c))))))
         (setf (alist-get #'corfu-pixel-perfect-mode minor-mode-overriding-map-alist) corfu-map)
+        (setq-local mwheel-scroll-up-function 'corfu-next)
+        (setq-local mwheel-scroll-down-function 'corfu-previous)
         (add-hook 'window-size-change-functions 'corfu-pixel-perfect--refresh-popup nil 'local)
         (add-hook 'window-size-change-functions 'corfu-pixel-perfect--reposition-corfu-popupinfo-frame nil 'local)
         (add-hook 'pre-command-hook 'corfu--prepare nil 'local)
@@ -635,54 +637,36 @@ which should be greater than 99.86% of the widths."
 
 (defun corfu-pixel-perfect--candidates-popup (pos)
   "Show candidates popup at POS."
-  (cond ((eq (selected-frame) corfu--frame)
-         (corfu-pixel-perfect--refresh-popup corfu--frame))
-
-        ((and (frame-live-p corfu--frame)
-              (frame-visible-p corfu--frame))
-
-         (when (eq this-command 'mwheel-scroll)
-           (let* ((event (car (listify-key-sequence (this-command-keys-vector))))
-                  (win (mwheel-event-window event))
-                  (button (event-basic-type event))
-                  (lines (event-line-count event)))
-             (when (eq win (frame-root-window corfu--frame))
-               ;; Yes, Emacs maps mouse events upside down...
-               (cond ((eq button mouse-wheel-down-event)
-                      (corfu-previous lines))
-                     ((eq button mouse-wheel-up-event)
-                      (corfu-next lines))))))
-
-         (corfu-pixel-perfect--refresh-popup corfu--frame pos))
-
-        (t
-         (corfu--compute-scroll)
-         (let* ((curr (- corfu--index corfu--scroll))
-                (cands (corfu-pixel-perfect--prepare-candidates
-                        (take corfu-count (nthcdr corfu--scroll corfu--candidates))))
-                (pw (corfu-pixel-perfect--column-pixel-width cands 'prefix))
-                (fw (default-font-width))
-                ;; Disable the left margin if there are prefixes
-                (ml (if (> pw 0) 0 corfu-left-margin-width))
-                (ml (max 0 (ceiling (* fw ml))))
-                (mr (max 0 (ceiling (* fw corfu-right-margin-width))))
-                (offset (+ pw ml))
-                (corfu-min-width
-                 (min corfu-max-width
-                      (max corfu-min-width
-                           ;; 100 because it's a multiple of 25 that we rarely get
-                           ;; unless programming in Elisp using a completion style
-                           ;; such as flex, orderless, prescient or flx. 100 also
-                           ;; seems like a number that performance degradation
-                           ;; becomes perceivable.
-                           (if (> corfu--total 100)
-                               (/ (corfu-pixel-perfect--guess-width) (float fw))
-                             corfu-min-width))))
-                (cands (corfu-pixel-perfect--truncate-from-annotation-maybe cands))
-                (cands (corfu-pixel-perfect--truncate-proportionally-maybe cands))
-                (cands (corfu-pixel-perfect--hide-annotation-maybe cands curr))
-                (lines (corfu-pixel-perfect--format-candidates cands curr ml mr)))
-           (corfu--popup-show pos offset nil lines curr)))))
+  (if (and (frame-live-p corfu--frame)
+           (frame-visible-p corfu--frame))
+      (corfu-pixel-perfect--refresh-popup corfu--frame pos)
+    (corfu--compute-scroll)
+    (let* ((curr (- corfu--index corfu--scroll))
+           (cands (corfu-pixel-perfect--prepare-candidates
+                   (take corfu-count (nthcdr corfu--scroll corfu--candidates))))
+           (pw (corfu-pixel-perfect--column-pixel-width cands 'prefix))
+           (fw (default-font-width))
+           ;; Disable the left margin if there are prefixes
+           (ml (if (> pw 0) 0 corfu-left-margin-width))
+           (ml (max 0 (ceiling (* fw ml))))
+           (mr (max 0 (ceiling (* fw corfu-right-margin-width))))
+           (offset (+ pw ml))
+           (corfu-min-width
+            (min corfu-max-width
+                 (max corfu-min-width
+                      ;; 100 because it's a multiple of 25 that we rarely get
+                      ;; unless programming in Elisp using a completion style
+                      ;; such as flex, orderless, prescient or flx. 100 also
+                      ;; seems like a number that performance degradation
+                      ;; becomes perceivable.
+                      (if (> corfu--total 100)
+                          (/ (corfu-pixel-perfect--guess-width) (float fw))
+                        corfu-min-width))))
+           (cands (corfu-pixel-perfect--truncate-from-annotation-maybe cands))
+           (cands (corfu-pixel-perfect--truncate-proportionally-maybe cands))
+           (cands (corfu-pixel-perfect--hide-annotation-maybe cands curr))
+           (lines (corfu-pixel-perfect--format-candidates cands curr ml mr)))
+      (corfu--popup-show pos offset nil lines curr))))
 
 (cl-defmethod corfu--popup-show :around (pos off _ lines
                                              &context (corfu-pixel-perfect-mode (eql t))
