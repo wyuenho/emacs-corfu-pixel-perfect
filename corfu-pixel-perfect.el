@@ -151,12 +151,12 @@ EVENT is a mouse click event."
                                 (with-current-buffer orig-buf
                                   (self-insert-command n c))))))
         (setf (alist-get #'corfu-pixel-perfect-mode minor-mode-overriding-map-alist) corfu-map)
-        (setq-local mwheel-scroll-up-function 'corfu-next)
-        (setq-local mwheel-scroll-down-function 'corfu-previous)
-        (add-hook 'window-size-change-functions 'corfu-pixel-perfect--refresh-popup nil 'local)
-        (add-hook 'window-size-change-functions 'corfu-pixel-perfect--reposition-corfu-popupinfo-frame nil 'local)
-        (add-hook 'pre-command-hook 'corfu--prepare nil 'local)
-        (add-hook 'post-command-hook 'corfu--post-command nil 'local)))
+        (setq-local mwheel-scroll-up-function #'corfu-next)
+        (setq-local mwheel-scroll-down-function #'corfu-previous)
+        (add-hook 'window-size-change-functions #'corfu-pixel-perfect--refresh-popup nil 'local)
+        (add-hook 'window-size-change-functions #'corfu-pixel-perfect--reposition-corfu-popupinfo-frame nil 'local)
+        (add-hook 'pre-command-hook #'corfu--prepare nil 'local)
+        (add-hook 'post-command-hook #'corfu--post-command nil 'local)))
 
     new-buffer))
 
