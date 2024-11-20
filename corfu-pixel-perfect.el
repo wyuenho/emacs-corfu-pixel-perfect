@@ -114,11 +114,12 @@ the fringe when you use this option."
 
 EVENT is a mouse click event."
   (interactive "e")
-  (let* ((posn (event-end event))
-         (win (posn-window posn))
-         (pos (posn-point posn)))
-    (when (and (windowp win) (numberp pos))
-      (corfu--goto (+ corfu--scroll (1- (line-number-at-pos pos))))
+  (pcase-let* ((posn (event-end event))
+               (win (posn-window posn))
+               (area (posn-area posn))
+               (`(,_ . ,row) (posn-actual-col-row posn)))
+    (when (and (windowp win) (not area) (numberp row))
+      (corfu--goto (+ corfu--scroll row))
       (corfu-insert))))
 
 (defvar-keymap corfu-pixel-perfect-mouse-map
@@ -126,6 +127,45 @@ EVENT is a mouse click event."
   :parent corfu--mouse-ignore-map
   "<mouse-1>" #'corfu-pixel-perfect-select-and-insert
   "C-M-<mouse-1>" #'corfu-pixel-perfect-select-and-insert)
+
+(defvar-local corfu-pixel-perfect-mouse-highlight-ov nil
+  "The overlay used to highlight a row on mouse hover.")
+
+(defun corfu-pixel-perfect--mouse-highlight-row (row)
+  "Highlight ROW in the popup buffer."
+  (with-current-buffer (window-buffer (frame-root-window corfu--frame))
+    (save-excursion
+      (goto-char (point-min))
+      (forward-line row)
+      (let ((bol (pos-bol))
+            (eol (pos-eol))
+            (ov corfu-pixel-perfect-mouse-highlight-ov))
+        (cond ((and (overlayp ov)
+                    (or (/= bol (overlay-start ov))
+                        (/= eol (overlay-end ov))))
+               (move-overlay ov (pos-bol) (pos-eol)))
+
+              ((not ov)
+               (setq-local corfu-pixel-perfect-mouse-highlight-ov (make-overlay bol eol))
+               (overlay-put corfu-pixel-perfect-mouse-highlight-ov 'mouse-face 'corfu-pixel-perfect-mouse)))))))
+
+(defun corfu-pixel-perfect--setup-mouse-timer (frame)
+  "Set up a timer in the popup FRAME to highlight rows on hover."
+  (run-with-timer
+   0.1 0.1
+   (lambda ()
+     (when (and (frame-live-p frame)
+                (frame-visible-p frame))
+       (pcase-let* ((mouse-fine-grained-tracking t)
+                    (`(,f ,x . ,y) (mouse-pixel-position)))
+         (when (eq f frame)
+           (pcase-let* ((posn (posn-at-x-y x y f))
+                        (win (posn-window posn))
+                        (area (posn-area posn))
+                        (`(,_ . ,row) (posn-actual-col-row posn)))
+             ;; highlight current line
+             (when (and (windowp win) (not area) (numberp row))
+               (corfu-pixel-perfect--mouse-highlight-row row)))))))))
 
 (defconst corfu-pixel-perfect--buffer-name " *corfu-pixel-perfect*")
 
@@ -480,29 +520,21 @@ terminal."
              ;; do not use relative space pixel params as they may lead to wrong
              ;; `string-pixel-width' results
              collect
-             (let ((line
-                    (concat
-                     (if (= i curr) current-marginl marginl)
-                     (substring prefix)
-                     (apply 'propertize " "
-                            'display `(space :align-to (,(+ ml pw)))
-                            (if (= i curr) '(face corfu-current)))
-                     cand
-                     (apply 'propertize " "
-                            'display `(space :align-to (,(+ ml pw cw
-                                                            ;; pads out the string to fit min width
-                                                            (- width (+ pw cw sw))
-                                                            (- sw (corfu-pixel-perfect--string-pixel-width suffix)))))
-                            (if (= i curr) '(face corfu-current)))
-                     suffix
-                     (if (= i curr) current-marginr marginr))))
-
-               (add-text-properties
-                0 (length line)
-                '(mouse-face corfu-pixel-perfect-mouse pointer hand)
-                line)
-
-               line))))
+             (concat
+              (if (= i curr) current-marginl marginl)
+              (substring prefix)
+              (apply 'propertize " "
+                     'display `(space :align-to (,(+ ml pw)))
+                     (if (= i curr) '(face corfu-current)))
+              cand
+              (apply 'propertize " "
+                     'display `(space :align-to (,(+ ml pw cw
+                                                     ;; pads out the string to fit min width
+                                                     (- width (+ pw cw sw))
+                                                     (- sw (corfu-pixel-perfect--string-pixel-width suffix)))))
+                     (if (= i curr) '(face corfu-current)))
+              suffix
+              (if (= i curr) current-marginr marginr)))))
 
 (defun corfu-pixel-perfect--scroll-bar-range ()
   "Return the range of the scroll bar.
@@ -702,6 +734,10 @@ the terminal to offset the popup to the left."
                     (selected-frame) pos off width height)))
         (setq corfu--frame (corfu--make-frame corfu--frame x y width height))))
 
+    (set-frame-parameter
+     corfu--frame 'corfu-pixel-perfect--mouse-timer
+     (corfu-pixel-perfect--setup-mouse-timer corfu--frame))
+
     corfu--frame))
 
 (defun corfu-pixel-perfect--refresh-popup (frame-or-window &optional pos force)
@@ -797,7 +833,11 @@ target is the buffer in it."
 
 (defun corfu-pixel-perfect--hide-frame-deferred (frame)
   "Set focus back to the parent of the popup FRAME."
-  (select-frame-set-input-focus (frame-parent frame)))
+  (when (eq frame corfu--frame)
+    (when-let ((timer (frame-parameter corfu--frame 'corfu-pixel-perfect--mouse-timer)))
+      (cancel-timer timer)
+      (set-frame-parameter corfu--frame 'corfu-pixel-perfect--mouse-timer nil))
+    (select-frame-set-input-focus (frame-parent frame))))
 
 (defvar corfu-pixel-perfect--corfu--frame-parameters nil)
 
