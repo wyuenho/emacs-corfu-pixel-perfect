@@ -127,19 +127,15 @@ EVENT is a mouse click event."
   "<mouse-1>" #'corfu-pixel-perfect-select-and-insert
   "C-M-<mouse-1>" #'corfu-pixel-perfect-select-and-insert)
 
+(defconst corfu-pixel-perfect--buffer-name " *corfu-pixel-perfect*")
+
 (defun corfu-pixel-perfect--make-buffer (fn &rest args)
   "Set up buffer local variables for pixel perfection."
-  (if (equal (car args) corfu-popupinfo--buffer)
-      (apply fn args)
-    (let* ((orig-frame (selected-frame))
-           (orig-win (selected-window))
-           (orig-buf (current-buffer))
-           (orig-get-buffer-create (symbol-function 'get-buffer-create))
-           (new-buffer (cl-letf (((symbol-function 'get-buffer-create)
-                                  (lambda (name &optional _)
-                                    (funcall orig-get-buffer-create name t))))
-                         (apply fn args))))
-
+  (let* ((orig-frame (selected-frame))
+         (orig-win (selected-window))
+         (orig-buf (current-buffer))
+         (new-buffer (apply fn args)))
+    (when (equal (car args) corfu-pixel-perfect--buffer-name)
       (with-current-buffer new-buffer
         (setq-local buffer-display-table corfu-pixel-perfect--display-table
                     left-fringe-width nil
@@ -160,9 +156,9 @@ EVENT is a mouse click event."
         (add-hook 'window-size-change-functions 'corfu-pixel-perfect--refresh-popup nil 'local)
         (add-hook 'window-size-change-functions 'corfu-pixel-perfect--reposition-corfu-popupinfo-frame nil 'local)
         (add-hook 'pre-command-hook 'corfu--prepare nil 'local)
-        (add-hook 'post-command-hook 'corfu--post-command nil 'local))
+        (add-hook 'post-command-hook 'corfu--post-command nil 'local)))
 
-      new-buffer)))
+    new-buffer))
 
 (defun corfu-pixel-perfect--make-frame (fn &rest args)
   "Ensure buffer local variables take effect in FRAME."
@@ -699,7 +695,7 @@ the terminal to offset the popup to the left."
               (>= (- width bw) content-width)
             t))
 
-    (with-current-buffer (corfu--make-buffer " *corfu*")
+    (with-current-buffer (corfu--make-buffer corfu-pixel-perfect--buffer-name)
       (corfu-pixel-perfect--refresh-buffer (current-buffer) lines ellipsis)
       (pcase-let ((`(,x . ,y)
                    (corfu-pixel-perfect--compute-frame-position
@@ -810,12 +806,8 @@ target is the buffer in it."
   "Corfu in pixel perfect alignment."
   :global t
   :group 'corfu-pixel-perfect
-  (when corfu--frame
-    (when-let ((buf (get-buffer " *corfu*")))
-      (kill-buffer buf))
-    (when (frame-live-p corfu--frame)
-      (delete-frame corfu--frame))
-    (setq corfu--frame nil))
+  (when-let ((buf (get-buffer " *corfu*")))
+    (kill-buffer buf))
   (if corfu-pixel-perfect-mode
       (progn
         (cl-pushnew 'mwheel-scroll corfu-continue-commands)
@@ -828,6 +820,8 @@ target is the buffer in it."
         (advice-add #'corfu--candidates-popup :override #'corfu-pixel-perfect--candidates-popup)
         (advice-add #'corfu--setup :override #'corfu-pixel-perfect--setup)
         (advice-add #'corfu--hide-frame-deferred :after #'corfu-pixel-perfect--hide-frame-deferred))
+    (when-let ((buf (get-buffer corfu-pixel-perfect--buffer-name)))
+      (kill-buffer buf))
     (cl-delete 'mwheel-scroll corfu-continue-commands)
     (cl-delete 'handle-switch-frame corfu-continue-commands)
     (setq corfu--frame-parameters corfu-pixel-perfect--corfu--frame-parameters)
