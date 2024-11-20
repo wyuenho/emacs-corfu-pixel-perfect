@@ -220,7 +220,7 @@ EVENT is a mouse click event."
 
      frame)))
 
-(defconst corfu-pixel-perfect--adviced-functions
+(defconst corfu-pixel-perfect--advised-functions
   '(corfu--update
     corfu--range-valid-p
     corfu--continue-p
@@ -288,7 +288,7 @@ See `completion-in-region' for the arguments BEG, END, TABLE, PRED."
         completion-in-region--data (list beg end table pred completion-extra-properties))
 
   (corfu-pixel-perfect--wrap-functions
-   (append corfu-pixel-perfect--adviced-functions
+   (append corfu-pixel-perfect--advised-functions
            (corfu-pixel-perfect--commands corfu-map)))
 
   (completion-in-region-mode 1)
@@ -306,7 +306,7 @@ See `completion-in-region' for the arguments BEG, END, TABLE, PRED."
   (unless completion-in-region-mode
 
     (corfu-pixel-perfect--unwrap-functions
-     (append corfu-pixel-perfect--adviced-functions
+     (append corfu-pixel-perfect--advised-functions
              (corfu-pixel-perfect--commands corfu-map)))
 
     (remove-hook 'window-selection-change-functions #'corfu-pixel-perfect--window-change 'local)
