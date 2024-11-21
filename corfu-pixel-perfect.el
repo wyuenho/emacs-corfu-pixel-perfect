@@ -159,7 +159,7 @@ EVENT is a mouse click event."
      (when (and (frame-live-p corfu--frame)
                 (frame-visible-p corfu--frame))
        (pcase-let* ((`(,f ,x . ,y) (mouse-pixel-position)))
-         (when (eq f corfu--frame)
+         (when (and (framep f) (eq f corfu--frame) (wholenump x) (wholenump y))
            (pcase-let* ((posn (posn-at-x-y x y f))
                         (win (posn-window posn))
                         (area (posn-area posn))
