@@ -151,21 +151,23 @@ EVENT is a mouse click event."
                (setq-local corfu-pixel-perfect-mouse-highlight-ov (make-overlay bol eol))
                (overlay-put corfu-pixel-perfect-mouse-highlight-ov 'mouse-face 'corfu-pixel-perfect-mouse)))))))
 
-(defun corfu-pixel-perfect--setup-mouse-timer (frame)
-  "Set up a timer in the popup FRAME to highlight rows on hover."
+(defun corfu-pixel-perfect--setup-mouse-timer ()
+  "Set up a timer in the popup frame to highlight rows on hover."
   (run-with-timer
    (/ 1 (float 60)) (/ 1 (float 60))
    (lambda ()
-     (when (and (frame-live-p frame)
-                (frame-visible-p frame))
+     (when (and (frame-live-p corfu--frame)
+                (frame-visible-p corfu--frame))
        (pcase-let* ((`(,f ,x . ,y) (mouse-pixel-position)))
-         (when (eq f frame)
+         (when (eq f corfu--frame)
            (pcase-let* ((posn (posn-at-x-y x y f))
                         (win (posn-window posn))
                         (area (posn-area posn))
                         (`(,_ . ,row) (posn-actual-col-row posn)))
              ;; highlight current line
-             (when (and (windowp win) (not area) (numberp row))
+             (when (and (windowp win)
+                        (eq win (frame-root-window corfu--frame))
+                        (not area) (numberp row))
                (corfu-pixel-perfect--mouse-highlight-row row)))))))))
 
 (defconst corfu-pixel-perfect--buffer-name " *corfu-pixel-perfect*")
@@ -761,7 +763,7 @@ the terminal to offset the popup to the left."
 
     (set-frame-parameter
      corfu--frame 'corfu-pixel-perfect--mouse-timer
-     (corfu-pixel-perfect--setup-mouse-timer corfu--frame))
+     (corfu-pixel-perfect--setup-mouse-timer))
 
     corfu--frame))
 
