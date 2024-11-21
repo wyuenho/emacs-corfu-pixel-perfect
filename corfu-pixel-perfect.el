@@ -152,12 +152,11 @@ EVENT is a mouse click event."
 (defun corfu-pixel-perfect--setup-mouse-timer (frame)
   "Set up a timer in the popup FRAME to highlight rows on hover."
   (run-with-timer
-   0.1 0.1
+   (/ 1 (float 60)) (/ 1 (float 60))
    (lambda ()
      (when (and (frame-live-p frame)
                 (frame-visible-p frame))
-       (pcase-let* ((mouse-fine-grained-tracking t)
-                    (`(,f ,x . ,y) (mouse-pixel-position)))
+       (pcase-let* ((`(,f ,x . ,y) (mouse-pixel-position)))
          (when (eq f frame)
            (pcase-let* ((posn (posn-at-x-y x y f))
                         (win (posn-window posn))
