@@ -392,7 +392,7 @@ FACE applied to the 3 strings."
   "Trim white space in candidates CANDS."
   (cl-loop for c in cands do
            (cl-loop for s in-ref c do
-                    (setf s (concat " " (string-trim s)))))
+                    (setf s (string-trim-right s))))
   cands)
 
 (defun corfu-pixel-perfect--prepare-candidates (cands)
