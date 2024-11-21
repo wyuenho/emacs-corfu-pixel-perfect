@@ -818,7 +818,8 @@ its size has changed."
                                t))
 
         (when pos
-          (pcase-let* ((parent-frame (frame-parent frame))
+          (pcase-let* ((window-min-height window-safe-min-height)
+                       (parent-frame (frame-parent frame))
                        (lh (with-selected-frame parent-frame
                              (default-line-height)))
                        (height (max lh content-height))
