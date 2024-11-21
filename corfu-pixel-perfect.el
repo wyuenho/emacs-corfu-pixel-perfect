@@ -33,7 +33,9 @@
 ;;; Code:
 
 (require 'corfu)
+(require 'corfu-info)
 (require 'corfu-popupinfo)
+(require 'corfu-quick)
 (require 'mule-util)
 (eval-when-compile
   (require 'cl-lib)
@@ -168,6 +170,12 @@ EVENT is a mouse click event."
 
 (defconst corfu-pixel-perfect--buffer-name " *corfu-pixel-perfect*")
 
+(defvar-keymap corfu-pixel-perfect-with-popupinfo-map
+  :parent corfu-map
+  "<remap> <corfu-info-documentation>" #'corfu-popupinfo-documentation
+  "<remap> <corfu-info-location>" #'corfu-popupinfo-location
+  "M-t" #'corfu-popupinfo-toggle)
+
 (defun corfu-pixel-perfect--make-buffer (fn &rest args)
   "Set up buffer local variables for pixel perfection."
   (let* ((orig-frame (selected-frame))
@@ -189,7 +197,10 @@ EVENT is a mouse click event."
                               (with-selected-window orig-win
                                 (with-current-buffer orig-buf
                                   (self-insert-command n c))))))
-        (setf (alist-get #'corfu-pixel-perfect-mode minor-mode-overriding-map-alist) corfu-map)
+        (setf (alist-get #'corfu-pixel-perfect-mode minor-mode-overriding-map-alist)
+              (if corfu-popupinfo-mode
+                  corfu-pixel-perfect-with-popupinfo-map
+                corfu-map))
         (setq-local mwheel-scroll-up-function #'corfu-next)
         (setq-local mwheel-scroll-down-function #'corfu-previous)
         (add-hook 'window-size-change-functions #'corfu-pixel-perfect--refresh-popup nil 'local)
@@ -205,7 +216,6 @@ EVENT is a mouse click event."
    ;; Setting the fringe on the frame via buffer local vars is just crazy...
    (let* ((left-fringe-width 0)
           (right-fringe-width 0)
-          (default-minibuffer-frame (selected-frame))
           ;; (x-pointer-shape (if (boundp 'x-pointer-hand1) x-pointer-hand1))
           ;; (x-sensitive-text-pointer-shape x-pointer-shape)
           (frame (cl-letf (((symbol-function 'make-frame-visible) (symbol-function 'ignore)))
@@ -230,6 +240,12 @@ EVENT is a mouse click event."
     corfu--replace
     corfu--done
     corfu--insert
+    corfu-quick--read
+    corfu-info--display-buffer
+    corfu-info--restore-on-next-command
+    corfu-popupinfo--show
+    corfu-popupinfo--get-documentation
+    corfu-popupinfo--get-location
     corfu-pixel-perfect--refresh-popup))
 
 (defun corfu-pixel-perfect--wrap-functions (fns)
@@ -258,14 +274,19 @@ that triggered the popup."
   (while fns
     (advice-remove (pop fns) "corfu-pixel-perfect-wrapper")))
 
-(defun corfu-pixel-perfect--commands (keymap)
-  "Return a list of all the commands in KEYMAP."
+(defun corfu-pixel-perfect--commands (keymap &optional search-keymaps)
+  "Return a list of all the commands in KEYMAP.
+
+If SEARCH-KEYMAPS is non-nil, it is a list of keymaps to search
+for command remappings."
+  (setq search-keymaps (or search-keymaps (current-active-maps)))
   (cl-loop for _ being the key-codes of keymap
            using (key-bindings b)
            append
            (cond ((keymapp b)
-                  (corfu-pixel-perfect--commands b))
-                 ((commandp b) (list b)))))
+                  (corfu-pixel-perfect--commands b search-keymaps))
+                 ((commandp b)
+                  (list (or (command-remapping b nil search-keymaps) b))))))
 
 (defun corfu-pixel-perfect--window-change (window)
   "Window and buffer change hook which quits Corfu.
@@ -288,7 +309,10 @@ See `completion-in-region' for the arguments BEG, END, TABLE, PRED."
 
   (corfu-pixel-perfect--wrap-functions
    (append corfu-pixel-perfect--advised-functions
-           (corfu-pixel-perfect--commands corfu-map)))
+           (corfu-pixel-perfect--commands
+            corfu-map
+            (when corfu-popupinfo-map
+              (cons corfu-popupinfo-map (current-active-maps))))))
 
   (completion-in-region-mode 1)
   (activate-change-group (setq corfu--change-group (prepare-change-group)))
@@ -306,7 +330,10 @@ See `completion-in-region' for the arguments BEG, END, TABLE, PRED."
 
     (corfu-pixel-perfect--unwrap-functions
      (append corfu-pixel-perfect--advised-functions
-             (corfu-pixel-perfect--commands corfu-map)))
+             (corfu-pixel-perfect--commands
+              corfu-map
+              (when corfu-popupinfo-map
+                (cons corfu-popupinfo-map (current-active-maps))))))
 
     (remove-hook 'window-selection-change-functions #'corfu-pixel-perfect--window-change 'local)
     (remove-hook 'window-buffer-change-functions #'corfu-pixel-perfect--window-change 'local)
