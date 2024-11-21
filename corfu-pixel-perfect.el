@@ -392,7 +392,7 @@ FACE applied to the 3 strings."
   "Trim white space in candidates CANDS."
   (cl-loop for c in cands do
            (cl-loop for s in-ref c do
-                    (setf s (string-trim s))))
+                    (setf s (concat " " (string-trim s)))))
   cands)
 
 (defun corfu-pixel-perfect--prepare-candidates (cands)
@@ -531,7 +531,6 @@ terminal."
          (pw (corfu-pixel-perfect--column-pixel-width cands 'prefix))
          (sw (corfu-pixel-perfect--column-pixel-width cands 'annotation))
          (fw (default-font-width))
-         (sw (+ sw (if (> sw 0) fw 0)))
          (width (max (+ pw cw sw) (* fw corfu-min-width)))
          (marginl (propertize " " 'display `(space :width (,ml))))
          (marginr (propertize " " 'display `(space :width (,mr))))
