@@ -185,35 +185,32 @@ BUFFER-NAME is the name of the buffer to create for
 `corfu-pixel-perfect'."
   (let* ((orig-frame (selected-frame))
          (orig-win (selected-window))
-         (orig-buf (current-buffer))
-         (new-buffer (corfu--make-buffer buffer-name)))
-    (when (equal buffer-name corfu-pixel-perfect--buffer-name)
-      (with-current-buffer new-buffer
-        (setq-local buffer-display-table corfu-pixel-perfect--display-table
-                    left-fringe-width nil
-                    right-fringe-width nil
-                    global-hl-line-mode nil)
-        (add-to-invisibility-spec 'corfu-pixel-perfect)
-        (use-local-map corfu-pixel-perfect-mouse-map)
-        (keymap-local-set "<remap> <self-insert-command>"
-                          (lambda (n &optional c)
-                            (interactive (list (prefix-numeric-value current-prefix-arg) last-command-event))
-                            (with-selected-frame orig-frame
-                              (with-selected-window orig-win
-                                (with-current-buffer orig-buf
-                                  (self-insert-command n c))))))
-        (setf (alist-get #'corfu-pixel-perfect-mode minor-mode-overriding-map-alist)
-              (if corfu-popupinfo-mode
-                  corfu-pixel-perfect-with-popupinfo-map
-                corfu-map))
-        (setq-local mwheel-scroll-up-function #'corfu-next)
-        (setq-local mwheel-scroll-down-function #'corfu-previous)
-        (add-hook 'window-size-change-functions #'corfu-pixel-perfect--refresh-popup nil 'local)
-        (add-hook 'window-size-change-functions #'corfu-pixel-perfect--reposition-corfu-popupinfo-frame nil 'local)
-        (add-hook 'pre-command-hook #'corfu--prepare nil 'local)
-        (add-hook 'post-command-hook #'corfu--post-command nil 'local)))
-
-    new-buffer))
+         (orig-buf (current-buffer)))
+    (with-current-buffer (corfu--make-buffer buffer-name)
+      (setq-local buffer-display-table corfu-pixel-perfect--display-table
+                  left-fringe-width nil
+                  right-fringe-width nil
+                  global-hl-line-mode nil)
+      (add-to-invisibility-spec 'corfu-pixel-perfect)
+      (use-local-map corfu-pixel-perfect-mouse-map)
+      (keymap-local-set "<remap> <self-insert-command>"
+                        (lambda (n &optional c)
+                          (interactive (list (prefix-numeric-value current-prefix-arg) last-command-event))
+                          (with-selected-frame orig-frame
+                            (with-selected-window orig-win
+                              (with-current-buffer orig-buf
+                                (self-insert-command n c))))))
+      (setf (alist-get #'corfu-pixel-perfect-mode minor-mode-overriding-map-alist)
+            (if corfu-popupinfo-mode
+                corfu-pixel-perfect-with-popupinfo-map
+              corfu-map))
+      (setq-local mwheel-scroll-up-function #'corfu-next)
+      (setq-local mwheel-scroll-down-function #'corfu-previous)
+      (add-hook 'window-size-change-functions #'corfu-pixel-perfect--refresh-popup nil 'local)
+      (add-hook 'window-size-change-functions #'corfu-pixel-perfect--reposition-corfu-popupinfo-frame nil 'local)
+      (add-hook 'pre-command-hook #'corfu--prepare nil 'local)
+      (add-hook 'post-command-hook #'corfu--post-command nil 'local)
+      (current-buffer))))
 
 (defun corfu-pixel-perfect--make-frame (fn &rest args)
   "Ensure buffer local variables take effect in FRAME."
