@@ -386,10 +386,6 @@ FACE applied to the 3 strings."
      s)
    (mapcar 'substring triple)))
 
-(cl-defmethod corfu--affixate :around (cands &context (corfu-pixel-perfect-mode (eql t)))
-  (let ((result (cl-call-next-method cands)))
-    (cdr result)))
-
 (defun corfu-pixel-perfect--trim (cands)
   "Trim white space in candidates CANDS."
   (cl-loop for c in cands do
@@ -401,7 +397,7 @@ FACE applied to the 3 strings."
   "Prepare completion candidates CANDS for formatting."
   (let* ((cands (cl-loop for c in cands
                          collect (funcall corfu--hilit (substring c))))
-         (cands (corfu--affixate cands))
+         (cands (cdr (corfu--affixate cands)))
          (cands (corfu-pixel-perfect--trim cands)))
     cands))
 
