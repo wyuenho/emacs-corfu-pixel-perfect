@@ -343,21 +343,93 @@ See `completion-in-region' for the arguments BEG, END, TABLE, PRED."
     (remove-hook 'post-command-hook #'corfu--post-command 'local)
     (funcall 'corfu--teardown (current-buffer))))
 
-;; modified from `string-pixel-width' in subr-x.el
-(defun corfu-pixel-perfect--string-pixel-size (string)
+(defvar corfu-pixel-perfect--work-buffer--list nil)
+(defvar corfu-pixel-perfect--work-buffer-limit 10
+  "Maximum number of reusable work buffers.
+When this limit is exceeded, newly allocated work buffers are
+automatically killed, which means that in a such case
+`corfu-pixel-perfect--with-work-buffer' becomes equivalent to
+`with-temp-buffer'.")
+
+(defsubst corfu-pixel-perfect--work-buffer--get ()
+  "Get a work buffer."
+  (let ((buffer (pop corfu-pixel-perfect--work-buffer--list)))
+    (if (buffer-live-p buffer)
+        buffer
+      (generate-new-buffer " *corfu-pixel-perfect-work*" t))))
+
+(defun corfu-pixel-perfect--work-buffer--release (buffer)
+  "Release work BUFFER."
+  (if (buffer-live-p buffer)
+      (with-current-buffer buffer
+        ;; Flush BUFFER before making it available again, i.e. clear
+        ;; its contents, remove all overlays and buffer-local
+        ;; variables.  Is it enough to safely reuse the buffer?
+        (let ((inhibit-read-only t)
+              ;; Avoid deactivating the region as side effect.
+              deactivate-mark)
+          (erase-buffer))
+        (delete-all-overlays)
+        (let (change-major-mode-hook)
+          (kill-all-local-variables t))
+        ;; Make the buffer available again.
+        (push buffer corfu-pixel-perfect--work-buffer--list)))
+  ;; If the maximum number of reusable work buffers is exceeded, kill
+  ;; work buffer in excess, taking into account that the limit could
+  ;; have been let-bound to temporarily increase its value.
+  (when (> (length corfu-pixel-perfect--work-buffer--list)
+           corfu-pixel-perfect--work-buffer-limit)
+    (mapc #'kill-buffer (nthcdr corfu-pixel-perfect--work-buffer-limit
+                                corfu-pixel-perfect--work-buffer--list))
+    (setq corfu-pixel-perfect--work-buffer--list
+          (ntake corfu-pixel-perfect--work-buffer-limit
+                 corfu-pixel-perfect--work-buffer--list))))
+
+(defmacro corfu-pixel-perfect--with-work-buffer (&rest body)
+  "Create a work buffer, and evaluate BODY there like `progn'.
+Like `with-temp-buffer', but reuse an already created temporary
+buffer when possible, instead of creating a new one on each call."
+  (declare (indent 0) (debug t))
+  (let ((work-buffer (make-symbol "corfu-pixel-perfect-work-buffer")))
+    `(let ((,work-buffer (corfu-pixel-perfect--work-buffer--get)))
+       (with-current-buffer ,work-buffer
+         (unwind-protect
+             (progn ,@body)
+           (corfu-pixel-perfect--work-buffer--release ,work-buffer))))))
+
+;; TODO: deal with face remapping without having to pass a buffer
+;; Modified from `string-pixel-width' in subr-x.el from Emacs 31
+(defun corfu-pixel-perfect--string-pixel-size (string &optional buffer)
   "Return the size of STRING in pixels.
+
+If BUFFER is non-nil, use the face remappings from that buffer when
+determining the width.
 
 The return value is a `cons' cell where the `car' is the width and
 `cdr' is the height."
   (if (zerop (length string))
       (cons 0 0)
-    (with-current-buffer (get-buffer-create " *corfu-pixel-perfect--string-pixel-size*" t)
-      (setq-local display-line-numbers nil
-                  buffer-invisibility-spec nil)
-      (delete-region (point-min) (point-max))
-      (setq line-prefix nil
-            wrap-prefix nil)
-      (insert (propertize string 'line-prefix nil 'wrap-prefix nil))
+    (corfu-pixel-perfect--with-work-buffer
+      (if buffer
+          (setq-local face-remapping-alist
+                      (with-current-buffer buffer
+                        face-remapping-alist))
+        (kill-local-variable 'face-remapping-alist))
+      ;; Avoid deactivating the region as side effect.
+      (let (deactivate-mark)
+        (insert string))
+      ;; If `display-line-numbers' is enabled in internal
+      ;; buffers (e.g. globally), it breaks width calculation
+      ;; (bug#59311).  Disable `line-prefix' and `wrap-prefix',
+      ;; for the same reason.
+      (add-text-properties
+       (point-min) (point-max) '(display-line-numbers-disable t))
+      ;; Prefer `remove-text-properties' to `propertize' to avoid
+      ;; creating a new string on each call.
+      (remove-list-of-text-properties
+       (point-min) (point-max) '(line-prefix wrap-prefix invisible))
+
+      (setq line-prefix nil wrap-prefix nil buffer-invisibility-spec nil)
       (buffer-text-pixel-size nil nil t))))
 
 (defun corfu-pixel-perfect--string-pixel-width (string)
