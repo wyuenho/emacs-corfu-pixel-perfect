@@ -130,7 +130,7 @@ EVENT is a mouse click event."
   "<mouse-1>" #'corfu-pixel-perfect-select-and-insert
   "C-M-<mouse-1>" #'corfu-pixel-perfect-select-and-insert)
 
-(defvar-local corfu-pixel-perfect-mouse-highlight-ov nil
+(defvar-local corfu-pixel-perfect--mouse-highlight-ov nil
   "The overlay used to highlight a row on mouse hover.")
 
 (defun corfu-pixel-perfect--mouse-highlight-row (row)
@@ -141,15 +141,15 @@ EVENT is a mouse click event."
       (forward-line row)
       (let ((bol (pos-bol))
             (eol (pos-eol))
-            (ov corfu-pixel-perfect-mouse-highlight-ov))
+            (ov corfu-pixel-perfect--mouse-highlight-ov))
         (cond ((and (overlayp ov)
                     (or (/= bol (overlay-start ov))
                         (/= eol (overlay-end ov))))
                (move-overlay ov (pos-bol) (pos-eol)))
 
               ((not ov)
-               (setq-local corfu-pixel-perfect-mouse-highlight-ov (make-overlay bol eol))
-               (overlay-put corfu-pixel-perfect-mouse-highlight-ov 'mouse-face 'corfu-pixel-perfect-mouse)))))))
+               (setq-local corfu-pixel-perfect--mouse-highlight-ov (make-overlay bol eol))
+               (overlay-put corfu-pixel-perfect--mouse-highlight-ov 'mouse-face 'corfu-pixel-perfect-mouse)))))))
 
 (defun corfu-pixel-perfect--setup-mouse-timer ()
   "Set up a timer in the popup frame to highlight rows on hover."
