@@ -178,13 +178,16 @@ EVENT is a mouse click event."
   "<remap> <corfu-info-location>" #'corfu-popupinfo-location
   "M-t" #'corfu-popupinfo-toggle)
 
-(defun corfu-pixel-perfect--make-buffer (fn &rest args)
-  "Set up buffer local variables for pixel perfection."
+(defun corfu-pixel-perfect--make-buffer (buffer-name)
+  "Set up buffer local variables for pixel perfection.
+
+BUFFER-NAME is the name of the buffer to create for
+`corfu-pixel-perfect'."
   (let* ((orig-frame (selected-frame))
          (orig-win (selected-window))
          (orig-buf (current-buffer))
-         (new-buffer (apply fn args)))
-    (when (equal (car args) corfu-pixel-perfect--buffer-name)
+         (new-buffer (corfu--make-buffer buffer-name)))
+    (when (equal buffer-name corfu-pixel-perfect--buffer-name)
       (with-current-buffer new-buffer
         (setq-local buffer-display-table corfu-pixel-perfect--display-table
                     left-fringe-width nil
@@ -754,7 +757,7 @@ the terminal to offset the popup to the left."
               (>= (- width bw) content-width)
             t))
 
-    (with-current-buffer (corfu--make-buffer corfu-pixel-perfect--buffer-name)
+    (with-current-buffer (corfu-pixel-perfect--make-buffer corfu-pixel-perfect--buffer-name)
       (corfu-pixel-perfect--refresh-buffer (current-buffer) lines ellipsis)
       (pcase-let ((`(,x . ,y)
                    (corfu-pixel-perfect--compute-frame-position
@@ -882,9 +885,7 @@ target is the buffer in it."
         (cl-pushnew 'handle-switch-frame corfu-continue-commands)
         (setq corfu-pixel-perfect--corfu--frame-parameters (copy-tree corfu--frame-parameters))
         (setf (alist-get 'no-accept-focus corfu--frame-parameters nil t) nil)
-        (advice-add #'corfu--make-buffer :around #'corfu-pixel-perfect--make-buffer)
         (advice-add #'corfu--make-frame :around #'corfu-pixel-perfect--make-frame)
-        (advice-add #'corfu--format-candidates :override #'corfu-pixel-perfect--format-candidates)
         (advice-add #'corfu--candidates-popup :override #'corfu-pixel-perfect--candidates-popup)
         (advice-add #'corfu--setup :override #'corfu-pixel-perfect--setup)
         (advice-add #'corfu--hide-frame-deferred :after #'corfu-pixel-perfect--hide-frame-deferred))
@@ -893,9 +894,7 @@ target is the buffer in it."
     (cl-delete 'mwheel-scroll corfu-continue-commands)
     (cl-delete 'handle-switch-frame corfu-continue-commands)
     (setq corfu--frame-parameters corfu-pixel-perfect--corfu--frame-parameters)
-    (advice-remove #'corfu--make-buffer #'corfu-pixel-perfect--make-buffer)
     (advice-remove #'corfu--make-frame #'corfu-pixel-perfect--make-frame)
-    (advice-remove #'corfu--format-candidates #'corfu-pixel-perfect--format-candidates)
     (advice-remove #'corfu--candidates-popup #'corfu-pixel-perfect--candidates-popup)
     (advice-remove #'corfu--setup #'corfu-pixel-perfect--setup)
     (advice-remove #'corfu--hide-frame-deferred #'corfu-pixel-perfect--hide-frame-deferred)))
