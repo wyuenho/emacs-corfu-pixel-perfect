@@ -124,6 +124,9 @@ EVENT is a mouse click event."
       (corfu--goto (+ corfu--scroll row))
       (corfu-insert))))
 
+;; Do not show `corfu-pixel-perfect' commands with M-X
+(put 'corfu-pixel-perfect-select-and-insert 'completion-predicate #'ignore)
+
 (defvar-keymap corfu-pixel-perfect-mouse-map
   :doc "Allow mouse click for candidate selection."
   :parent corfu--mouse-ignore-map
