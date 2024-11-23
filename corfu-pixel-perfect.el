@@ -734,31 +734,43 @@ the larger of 100 or 1/10 of the population to calculate an
 average of averages and an average of standard deviations. The
 value 3 standard deviations above the mean of means is returned,
 which should be greater than 99.86% of the widths."
-  (pcase-let* ((n 25)
-               (N (max 4 (/ corfu--total n 10)))
-               (`(,mean . ,stddev)
-                (cl-loop repeat N
-                         with M = 0
-                         with S = 0
-                         do
-                         (let* ((samples (cl-loop repeat n collect (seq-random-elt corfu--candidates)))
-                                (samples (corfu-pixel-perfect--prepare-candidates samples))
-                                (lengths
-                                 (cl-loop for s in samples
-                                          collect
-                                          (thread-last
-                                            s
-                                            (corfu-pixel-perfect--add-face-to-triple 'corfu-current)
-                                            string-join
-                                            corfu-pixel-perfect--string-pixel-width)))
-                                (x-bar (/ (apply '+ lengths) (float n)))
-                                (s (sqrt (/ (cl-loop for l in lengths
-                                                     sum (* (- l x-bar) (- l x-bar)))
-                                            (float (- n 1))))))
-                           (setq M (+ M x-bar)
-                                 S (+ S s)))
-                         finally return (cons (/ M N) (/ S N)))))
-    (ceiling (+ mean (* 3 stddev)))))
+  ;; 100 because it's a multiple of 25 that we rarely get
+  ;; unless programming in Elisp using a completion style
+  ;; such as flex, orderless, prescient or flx. 100 also
+  ;; seems like a number that performance degradation
+  ;; becomes perceivable.
+  (if (<= corfu--total 100)
+      (corfu-pixel-perfect--string-pixel-width
+       (string-join
+        (cl-loop for s in (corfu-pixel-perfect--prepare-candidates corfu--candidates)
+                 collect
+                 (string-join (corfu-pixel-perfect--add-face-to-triple 'corfu-current s)))
+        "\n"))
+    (pcase-let* ((n 25)
+                 (N (max 4 (/ corfu--total n 10)))
+                 (`(,mean . ,stddev)
+                  (cl-loop repeat N
+                           with M = 0
+                           with S = 0
+                           do
+                           (let* ((samples (cl-loop repeat n collect (seq-random-elt corfu--candidates)))
+                                  (samples (corfu-pixel-perfect--prepare-candidates samples))
+                                  (lengths
+                                   (cl-loop for s in samples
+                                            collect
+                                            (thread-last
+                                              s
+                                              (corfu-pixel-perfect--add-face-to-triple 'corfu-current)
+                                              string-join
+                                              corfu-pixel-perfect--string-pixel-width)))
+                                  (x-bar (/ (apply '+ lengths) (float n)))
+                                  (s (sqrt (/ (cl-loop for l in lengths
+                                                       sum (* (- l x-bar) (- l x-bar)))
+                                              (float (- n 1))))))
+                             (setq M (+ M x-bar)
+                                   S (+ S s)))
+                           finally return (cons (/ M N) (/ S N)))))
+      (ceiling (+ mean (* 3 stddev))))))
 
 (defun corfu-pixel-perfect--candidates-popup (pos)
   "Show candidates popup at POS."
@@ -778,16 +790,7 @@ which should be greater than 99.86% of the widths."
            (offset (+ pw ml))
            (cands (corfu-pixel-perfect--hide-annotation-maybe cands curr))
            (corfu-min-width
-            (min corfu-max-width
-                 (max corfu-min-width
-                      ;; 100 because it's a multiple of 25 that we rarely get
-                      ;; unless programming in Elisp using a completion style
-                      ;; such as flex, orderless, prescient or flx. 100 also
-                      ;; seems like a number that performance degradation
-                      ;; becomes perceivable.
-                      (if (> corfu--total 100)
-                          (/ (corfu-pixel-perfect--guess-width) (float fw))
-                        corfu-min-width))))
+            (min corfu-max-width (/ (corfu-pixel-perfect--guess-width) (float fw))))
            (cands (corfu-pixel-perfect--truncate-from-annotation-maybe cands))
            (cands (corfu-pixel-perfect--truncate-proportionally-maybe cands))
            (lines (corfu-pixel-perfect--format-candidates cands curr ml mr)))
