@@ -426,10 +426,9 @@ The return value is a `cons' cell where the `car' is the width and
        (point-min) (point-max) '(display-line-numbers-disable t))
       ;; Prefer `remove-text-properties' to `propertize' to avoid
       ;; creating a new string on each call.
-      (remove-list-of-text-properties
-       (point-min) (point-max) '(line-prefix wrap-prefix invisible))
-
-      (setq line-prefix nil wrap-prefix nil buffer-invisibility-spec nil)
+      (remove-text-properties
+       (point-min) (point-max) '(line-prefix nil wrap-prefix nil))
+      (setq line-prefix nil wrap-prefix nil)
       (buffer-text-pixel-size nil nil t))))
 
 (defun corfu-pixel-perfect--string-pixel-width (string)
@@ -774,6 +773,7 @@ which should be greater than 99.86% of the widths."
            (ml (max 0 (ceiling (* fw ml))))
            (mr (max 0 (ceiling (* fw corfu-right-margin-width))))
            (offset (+ pw ml))
+           (cands (corfu-pixel-perfect--hide-annotation-maybe cands curr))
            (corfu-min-width
             (min corfu-max-width
                  (max corfu-min-width
@@ -787,7 +787,6 @@ which should be greater than 99.86% of the widths."
                         corfu-min-width))))
            (cands (corfu-pixel-perfect--truncate-from-annotation-maybe cands))
            (cands (corfu-pixel-perfect--truncate-proportionally-maybe cands))
-           (cands (corfu-pixel-perfect--hide-annotation-maybe cands curr))
            (lines (corfu-pixel-perfect--format-candidates cands curr ml mr)))
       (corfu--popup-show pos offset nil lines curr))))
 
@@ -869,12 +868,12 @@ its size has changed."
                    (bw (if (corfu-pixel-perfect--show-scroll-bar-p)
                            (corfu-pixel-perfect--bar-pixel-width ellipsis)
                          0))
+                   (cands (corfu-pixel-perfect--hide-annotation-maybe cands curr))
                    ;; keeping this in floating point for precision
                    (corfu-max-width (/ (- (frame-text-width frame) bw ml mr) (float fw)))
                    (corfu-min-width corfu-max-width)
                    (cands (corfu-pixel-perfect--truncate-from-annotation-maybe cands))
                    (cands (corfu-pixel-perfect--truncate-proportionally-maybe cands))
-                   (cands (corfu-pixel-perfect--hide-annotation-maybe cands curr))
                    (lines (corfu-pixel-perfect--format-candidates cands curr ml mr))
                    (`(,content-width . ,content-height)
                     (corfu-pixel-perfect--string-pixel-size (string-join lines "\n"))))
