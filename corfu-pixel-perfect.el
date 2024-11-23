@@ -93,6 +93,19 @@ the fringe when you use this option."
                  (const :tag "Proportional" proportional)
                  (const :tag "None" nil)))
 
+(defcustom corfu-pixel-perfect-format-functions nil
+  "A list of functions to format candidates.
+
+Each function is passed 2 arguments - a list of (candidate prefix
+suffix) and the completion metadata. Each function should return
+a triple of strings or nil if it should not be displayed in the
+completion popup.
+
+As an optimization to minimize GC, modifying the string in the
+list in-place to encouraged."
+  :local t
+  :type '(repeat function))
+
 (defgroup corfu-pixel-perfect-faces nil
   "Faces used by `corfu-pixel-perfect'."
   :group 'corfu-pixel-perfect
@@ -251,6 +264,7 @@ BUFFER-NAME is the name of the buffer to create for
     corfu-popupinfo--show
     corfu-popupinfo--get-documentation
     corfu-popupinfo--get-location
+    corfu-pixel-perfect--apply-format-functions
     corfu-pixel-perfect--refresh-popup))
 
 (defun corfu-pixel-perfect--wrap-functions (fns)
@@ -467,12 +481,22 @@ FACE applied to the 3 strings."
                     (setf s (string-trim-right s))))
   cands)
 
+(defun corfu-pixel-perfect--apply-format-functions (cands)
+  "Apply formatting functions to candidates CANDS."
+  (let ((completion-extra-properties (nth 4 completion-in-region--data)))
+    (cl-loop for f in corfu-pixel-perfect-format-functions
+             do (cl-loop for c in cands
+                         do (setf c (funcall f c corfu--metadata)))))
+  (cl-delete-if 'null cands)
+  cands)
+
 (defun corfu-pixel-perfect--prepare-candidates (cands)
   "Prepare completion candidates CANDS for formatting."
   (let* ((cands (cl-loop for c in cands
                          collect (funcall corfu--hilit (substring c))))
          (cands (cdr (corfu--affixate cands)))
-         (cands (corfu-pixel-perfect--trim cands)))
+         (cands (corfu-pixel-perfect--trim cands))
+         (cands (corfu-pixel-perfect--apply-format-functions cands)))
     cands))
 
 (defun corfu-pixel-perfect--hide-annotation-maybe (cands curr)
