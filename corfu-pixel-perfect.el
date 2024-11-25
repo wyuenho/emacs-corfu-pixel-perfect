@@ -348,11 +348,10 @@ See `completion-in-region' for the arguments BEG, END, TABLE, PRED."
 
 (defun corfu-pixel-perfect--teardown ()
   "Teardown Corfu completion state."
-  (when (and (boundp 'lsp-inhibit-lsp-hooks)
-             (bound-and-true-p lsp-completion-mode))
-    (setq-local lsp-inhibit-lsp-hooks nil))
-
   (unless completion-in-region-mode
+    (when (and (boundp 'lsp-inhibit-lsp-hooks)
+               (bound-and-true-p lsp-completion-mode))
+      (setq-local lsp-inhibit-lsp-hooks nil))
 
     (corfu-pixel-perfect--unwrap-functions
      (append corfu-pixel-perfect--advised-functions
@@ -365,7 +364,7 @@ See `completion-in-region' for the arguments BEG, END, TABLE, PRED."
     (remove-hook 'window-buffer-change-functions #'corfu-pixel-perfect--window-change 'local)
     (remove-hook 'completion-in-region-mode-hook #'corfu-pixel-perfect--teardown 'local)
     (remove-hook 'post-command-hook #'corfu--post-command 'local)
-    (funcall 'corfu--teardown (current-buffer))))
+    (corfu--teardown (current-buffer))))
 
 (defvar corfu-pixel-perfect--work-buffer--list nil)
 (defvar corfu-pixel-perfect--work-buffer-limit 10
