@@ -484,7 +484,13 @@ FACE applied to the 3 strings."
   "Trim white space in candidates CANDS."
   (cl-loop for c in cands do
            (cl-loop for s in-ref c do
-                    (setf s (string-trim-right s))))
+                    (setf s (string-clean-whitespace s)))
+           (when-let (((> (length (caddr c)) 0))
+                      (suffix (caddr c)))
+             (setf (caddr c)
+                   (concat
+                    (apply 'propertize " " (text-properties-at 0 suffix))
+                    suffix))))
   cands)
 
 (defun corfu-pixel-perfect--apply-format-functions (cands)
