@@ -485,8 +485,8 @@ FACE applied to the 3 strings."
   (cl-loop for c in cands do
            (cl-loop for s in-ref c do
                     (setf s (string-clean-whitespace s)))
-           (when-let (((> (length (caddr c)) 0))
-                      (suffix (caddr c)))
+           (when-let* ((suffix (caddr c))
+                       ((> (length suffix) 0)))
              (setf (caddr c)
                    (concat
                     (apply 'propertize " " (text-properties-at 0 suffix))
