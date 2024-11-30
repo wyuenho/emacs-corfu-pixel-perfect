@@ -503,7 +503,7 @@ FACE applied to the 3 strings."
   cands)
 
 (defun corfu-pixel-perfect--prepare-candidates (cands)
-  "Prepare completion candidates CANDS for formatting."
+  "Prepare completion candidates CANDS for alignment and truncation."
   (let* ((cands (cl-loop for c in cands
                          collect (funcall corfu--hilit (substring c))))
          (cands (cdr (corfu--affixate cands)))
@@ -808,6 +808,47 @@ which should be greater than 99.86% of the widths."
                            finally return (cons (/ M N) (/ S N)))))
       (ceiling (+ mean (* 3 stddev))))))
 
+(declare-function lsp:completion-item-detail? "ext:lsp-protocol")
+(declare-function lsp-completion-resolve "ext:lsp-completion")
+
+(defun corfu-pixel-perfect--resolve-completion-item-detail (cand)
+  "Get the annotation for candidate CAND from LSP servers."
+  (and (bound-and-true-p lsp-managed-mode)
+       (fboundp 'lsp:completion-item-detail?)
+       (fboundp 'lsp-completion-resolve)
+       (or (lsp:completion-item-detail?
+            (get-text-property 0 'lsp-completion-unresolved-item cand))
+           (let* ((lsp-completion-resolved-item (lsp-completion-resolve cand))
+                  (lsp-completion-resolved-item
+                   (if (stringp lsp-completion-resolved-item)
+                       (get-text-property 0 'lsp-completion-item lsp-completion-resolved-item)
+                     lsp-completion-resolved-item)))
+             (lsp:completion-item-detail? lsp-completion-resolved-item)))))
+
+(defun corfu-pixel-perfect--prepare-current-candidate (cand)
+  "Prepare the current candidate CAND.
+
+Prepare CAND for alignment and truncation as usual, but
+optionally resolve the annotation from LSP servers if possible
+and necessary."
+  (let ((prepared (car (corfu-pixel-perfect--prepare-candidates (list cand)))))
+    (when-let (((or (not corfu-popupinfo-mode)
+                    (not corfu-popupinfo--toggle)))
+               (detail
+                (corfu-pixel-perfect--resolve-completion-item-detail cand)))
+      (setf (caddr prepared)
+            (propertize (concat " " (string-clean-whitespace detail))
+                        'face 'corfu-annotations)))
+    (car (corfu-pixel-perfect--apply-format-functions (list prepared)))))
+
+(defun corfu-pixel-perfect--get-prepared-candidates (cands)
+  "Prepare every all the candidates in CANDS."
+  (let* ((curr (- corfu--index corfu--scroll))
+         (front (corfu-pixel-perfect--prepare-candidates (take curr cands)))
+         (selected (corfu-pixel-perfect--prepare-current-candidate (nth curr cands)))
+         (back (corfu-pixel-perfect--prepare-candidates (nthcdr (1+ curr) cands))))
+    (nconc front (cons selected back))))
+
 (defun corfu-pixel-perfect--candidates-popup (pos)
   "Show candidates popup at POS."
   (if (and (frame-live-p corfu--frame)
@@ -815,7 +856,7 @@ which should be greater than 99.86% of the widths."
       (corfu-pixel-perfect--refresh-popup corfu--frame pos)
     (corfu--compute-scroll)
     (let* ((curr (- corfu--index corfu--scroll))
-           (cands (corfu-pixel-perfect--prepare-candidates
+           (cands (corfu-pixel-perfect--get-prepared-candidates
                    (take corfu-count (nthcdr corfu--scroll corfu--candidates))))
            (pw (corfu-pixel-perfect--column-pixel-width cands 'prefix))
            (fw (default-font-width))
@@ -900,7 +941,7 @@ its size has changed."
                    (corfu-count (max (frame-text-lines frame) (length cands)))
                    (corfu--scroll (corfu--compute-scroll))
                    (curr (- corfu--index corfu--scroll))
-                   (cands (corfu-pixel-perfect--prepare-candidates
+                   (cands (corfu-pixel-perfect--get-prepared-candidates
                            (take corfu-count (nthcdr corfu--scroll corfu--candidates))))
                    (fw (default-font-width))
                    (pw (corfu-pixel-perfect--column-pixel-width cands 'prefix))
