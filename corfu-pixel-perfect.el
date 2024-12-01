@@ -46,21 +46,6 @@
   :group 'corfu
   :prefix "corfu-pixel-perfect")
 
-(defcustom corfu-pixel-perfect-ignore-annotation-modes nil
-  "A list of major modes that should not show annotations."
-  :type '(repeat function))
-
-(defcustom corfu-pixel-perfect-ignore-annotation-except-current t
-  "Whether to show the annotation for the current selection.
-
-When used in combination with
-`corfu-pixel-perfect-ignore-annotation-modes', all the
-annotations will be hidden except for the current selection.
-
-When `corfu-pixel-perfect-ignore-annotation-modes' does not have
-an entry for the current major mode, this option has no effect."
-  :type 'boolean)
-
 (defcustom corfu-pixel-perfect-ellipsis nil
   "Whether to show ellipsis.
 
@@ -511,22 +496,6 @@ FACE applied to the 3 strings."
          (cands (corfu-pixel-perfect--apply-format-functions cands)))
     cands))
 
-(defun corfu-pixel-perfect--hide-annotation-maybe (cands curr)
-  "Hide annotation conditionally.
-CANDS is a list of triples of candidate string, prefix and suffix (annotation).
-CURR is the index of the current selection."
-  (when (memq major-mode corfu-pixel-perfect-ignore-annotation-modes)
-    (cl-loop for triple in cands
-             with i = 0
-             do
-             (unless (and (= i curr)
-                          corfu-pixel-perfect-ignore-annotation-except-current)
-               (let ((suffix (caddr triple)))
-                 (add-text-properties 0 (length suffix) '(invisible corfu-pixel-perfect) suffix)
-                 (setf (caddr triple) suffix)))
-             (cl-incf i)))
-  cands)
-
 (defun corfu-pixel-perfect--truncate-string-to-pixel-width (str width)
   "Truncate string STR to WIDTH.
 WIDTH is in pixels. If the string is longer than width when
@@ -865,7 +834,6 @@ and necessary."
            (ml (max 0 (ceiling (* fw ml))))
            (mr (max 0 (ceiling (* fw corfu-right-margin-width))))
            (offset (+ pw ml))
-           (cands (corfu-pixel-perfect--hide-annotation-maybe cands curr))
            (corfu-min-width
             (min corfu-max-width (/ (corfu-pixel-perfect--guess-width) (float fw))))
            (cands (corfu-pixel-perfect--truncate-from-annotation-maybe cands))
@@ -951,7 +919,6 @@ its size has changed."
                    (bw (if (corfu-pixel-perfect--show-scroll-bar-p)
                            (corfu-pixel-perfect--bar-pixel-width ellipsis)
                          0))
-                   (cands (corfu-pixel-perfect--hide-annotation-maybe cands curr))
                    ;; keeping this in floating point for precision
                    (corfu-max-width (/ (- (frame-text-width frame) bw ml mr) (float fw)))
                    (corfu-min-width corfu-max-width)
