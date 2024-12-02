@@ -814,12 +814,13 @@ Prepare CAND for alignment and truncation as usual, but
 optionally resolve the annotation from LSP servers if possible
 and necessary."
   (let ((prepared (car (corfu-pixel-perfect--prepare-candidates (list cand)))))
-    (when-let (((or (not corfu-popupinfo-mode)
-                    (not corfu-popupinfo--toggle)))
+    (when-let (((and (length= (caddr prepared) 0)
+                     (or (not corfu-popupinfo-mode)
+                         (not corfu-popupinfo--toggle))))
                (detail
                 (corfu-pixel-perfect--resolve-completion-item-detail cand)))
       (setf (caddr prepared)
-            (propertize (concat " " (string-clean-whitespace detail))
+            (propertize (concat " " (string-clean-whitespace (substring detail)))
                         'face 'corfu-annotations)))
     (car (corfu-pixel-perfect--apply-format-functions (list prepared)))))
 
