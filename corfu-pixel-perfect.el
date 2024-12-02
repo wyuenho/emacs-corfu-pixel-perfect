@@ -46,6 +46,16 @@
   :group 'corfu
   :prefix "corfu-pixel-perfect")
 
+(defcustom corfu-pixel-perfect-show-status-bar nil
+  "Whether to show a status bar for the popup."
+  :type 'boolean)
+
+(defcustom corfu-pixel-perfect-status-bar-segments
+  '(corfu-pixel-perfect-insert-segment
+    corfu-pixel-perfect-show-doc-segment)
+  "Which segments to show in the popup status bar."
+  :type '(repeat function))
+
 (defcustom corfu-pixel-perfect-ellipsis nil
   "Whether to show ellipsis.
 
@@ -818,6 +828,93 @@ and necessary."
          (back (corfu-pixel-perfect--prepare-candidates (nthcdr (1+ curr) cands))))
     (nconc front (cons selected back))))
 
+(defun corfu-pixel-perfect-insert-segment ()
+  "Insert segment."
+  (concat "Insert("
+          (thread-last
+            (where-is-internal 'corfu-insert)
+            (car)
+            (key-description))
+          ")"))
+
+(defun corfu-pixel-perfect-complete-segment ()
+  "Complete segment."
+  (concat " Complete("
+          (thread-last
+            (where-is-internal 'corfu-complete)
+            (car)
+            (key-description))
+          ")"))
+
+(defun corfu-pixel-perfect-expand-segment ()
+  "Expand segment."
+  (concat " Expand("
+          (thread-last
+            (where-is-internal 'corfu-expand)
+            (car)
+            (key-description))
+          ")"))
+
+(defun corfu-pixel-perfect-show-doc-segment ()
+  "Segment to show whether popupinfo is toggled on."
+  (if corfu-popupinfo-mode
+      (concat
+       (if corfu-popupinfo--toggle
+           " Show Less("
+         " Show More(")
+       (thread-last
+         (where-is-internal 'corfu-popupinfo-documentation)
+         (car)
+         (key-description))
+       ")")
+    ""))
+
+(defun corfu-pixel-perfect--update-mode-line ()
+  "Refresh the mode line of the popup."
+  (with-selected-frame corfu--frame
+    (with-selected-window (frame-root-window corfu--frame)
+      (with-current-buffer (window-buffer (selected-window))
+        (setq-local mode-line-format
+                    (if corfu-pixel-perfect-show-status-bar
+                        (pcase-let*
+                            ((fw (float (default-font-width)))
+                             (ml (max 0 (ceiling (* fw corfu-left-margin-width))))
+                             (mr (max 0 (ceiling (* fw corfu-right-margin-width))))
+                             (marginl (propertize " " 'display `(space :width (,ml))))
+                             (marginr (propertize " " 'display `(space :width (,mr))))
+                             (border (alist-get 'internal-border-width corfu--frame-parameters))
+                             (mode-line-width (- (frame-native-width) ml mr border border))
+                             (str-widths
+                              (cl-loop for seg in corfu-pixel-perfect-status-bar-segments
+                                       collect
+                                       (let ((str (funcall seg)))
+                                         (cons str (* fw (string-width str))))))
+                             (width (apply '+ (mapcar 'cdr str-widths)))
+                             (str-widths
+                              (cl-loop for pair in-ref str-widths do
+                                       (setf (cdr pair) (* (/ (cdr pair) width) mode-line-width)
+                                             (car pair)
+                                             (corfu-pixel-perfect--truncate-string-to-pixel-width
+                                              (car pair) (cdr pair)))
+                                       finally return str-widths))
+                             (width (apply '+ (mapcar 'cdr str-widths)))
+                             (`(,suffix . ,scaled-suffix-width) (car (last str-widths)))
+                             (padding (propertize
+                                       " " 'display
+                                       `(space :align-to
+                                               (,(+ ml
+                                                    (- width scaled-suffix-width)
+                                                    (- scaled-suffix-width
+                                                       (corfu-pixel-perfect--string-pixel-width suffix))))))))
+                          (string-join
+                           (list
+                            marginl
+                            (string-join (mapcar 'car (nbutlast str-widths)))
+                            padding
+                            suffix
+                            marginr)))
+                      nil))))))
+
 (defun corfu-pixel-perfect--candidates-popup (pos)
   "Show candidates popup at POS."
   (if (and (frame-live-p corfu--frame)
@@ -849,7 +946,6 @@ OFF is the number of pixels on graphical displays or columns in
 the terminal to offset the popup to the left."
   (pcase-let* ((`(,content-width . ,content-height)
                 (corfu-pixel-perfect--string-pixel-size (string-join lines "\n")))
-               (lh (default-line-height))
                (ellipsis corfu-pixel-perfect-ellipsis)
                (cw (default-font-width))
                (bw (if (corfu-pixel-perfect--show-scroll-bar-p)
@@ -861,9 +957,11 @@ the terminal to offset the popup to the left."
                              (min (* cw (min (- (frame-width) 4) corfu-max-width)) content-width)
                            ;; anything else the content is already truncated
                            content-width)))
-               ;; XXX HACK: Minimum popup height must be at least 1 line of the
-               ;; parent frame (gh:minad/corfu#261).
-               (height (max lh content-height)))
+               (height (max (* window-safe-min-height (default-line-height))
+                            (+ content-height
+                               (if corfu-pixel-perfect-show-status-bar
+                                   (window-mode-line-height)
+                                 0)))))
 
     ;; Enable ellipsis when the window text area is shorter than
     ;; the content-width
@@ -877,7 +975,8 @@ the terminal to offset the popup to the left."
       (pcase-let ((`(,x . ,y)
                    (corfu-pixel-perfect--compute-frame-position
                     (selected-frame) pos off width height)))
-        (setq corfu--frame (corfu--make-frame corfu--frame x y width height))))
+        (setq corfu--frame (corfu--make-frame corfu--frame x y width height)))
+      (corfu-pixel-perfect--update-mode-line))
 
     (set-frame-parameter
      corfu--frame 'corfu-pixel-perfect--mouse-timer
@@ -885,7 +984,7 @@ the terminal to offset the popup to the left."
 
     corfu--frame))
 
-(defun corfu-pixel-perfect--refresh-popup (frame-or-window &optional pos force)
+(defun corfu-pixel-perfect--refresh-popup (frame-or-window &optional pos)
   "Refresh popup content.
 
 If FRAME-OR-WINDOW is a frame, the buffer of its root window is
@@ -901,7 +1000,7 @@ its size has changed."
 
     (when (and (frame-live-p frame)
                (eq frame corfu--frame)
-               (or (frame-size-changed-p frame) pos force))
+               (or (frame-size-changed-p frame) pos))
 
       (pcase-let* ((inhibit-redisplay t)
                    (ellipsis corfu-pixel-perfect-ellipsis)
@@ -937,9 +1036,12 @@ its size has changed."
         (when pos
           (pcase-let* ((window-min-height window-safe-min-height)
                        (parent-frame (frame-parent frame))
-                       (lh (with-selected-frame parent-frame
-                             (default-line-height)))
-                       (height (max lh content-height))
+                       (lh (window-font-height win))
+                       (height (max (* lh window-safe-min-height)
+                                    (+ content-height
+                                       (if corfu-pixel-perfect-show-status-bar
+                                           (max 0 (- (window-mode-line-height win) lh))
+                                         0))))
                        (width (frame-native-width frame))
                        (`(,x . ,y)
                         (with-current-buffer buf
@@ -948,7 +1050,9 @@ its size has changed."
                        (`(,px . ,py) (frame-position frame)))
             (set-frame-height frame height nil t)
             (unless (and (= x px) (= y py))
-              (set-frame-position frame x y))))))
+              (set-frame-position frame x y))))
+
+        (corfu-pixel-perfect--update-mode-line)))
 
     (set-window-buffer win buf)
 
