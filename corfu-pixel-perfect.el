@@ -643,10 +643,7 @@ terminal."
                      (if (= i curr) '(face corfu-current)))
               cand
               (apply 'propertize " "
-                     'display `(space :align-to (,(+ ml pw cw
-                                                     ;; pads out the string to fit min width
-                                                     (- width (+ pw cw sw))
-                                                     (- sw (corfu-pixel-perfect--string-pixel-width suffix)))))
+                     'display `(space :align-to (,(+ ml (- width (corfu-pixel-perfect--string-pixel-width suffix)))))
                      (if (= i curr) '(face corfu-current)))
               suffix
               (if (= i curr) current-marginr marginr)))))
@@ -901,15 +898,11 @@ and necessary."
                                              (corfu-pixel-perfect--truncate-string-to-pixel-width
                                               (car pair) (cdr pair)))
                                        finally return str-widths))
-                             (width (apply '+ (mapcar 'cdr str-widths)))
-                             (`(,suffix . ,scaled-suffix-width) (car (last str-widths)))
+                             (`(,suffix) (car (last str-widths)))
                              (padding (propertize
                                        " " 'display
                                        `(space :align-to
-                                               (,(+ ml
-                                                    (- width scaled-suffix-width)
-                                                    (- scaled-suffix-width
-                                                       (corfu-pixel-perfect--string-pixel-width suffix))))))))
+                                               (,(+ ml (- mode-line-width (corfu-pixel-perfect--string-pixel-width suffix))))))))
                           (string-join
                            (list
                             marginl
