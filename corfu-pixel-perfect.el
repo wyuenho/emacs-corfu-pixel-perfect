@@ -518,13 +518,17 @@ FACE applied to the 3 strings."
   (cl-delete-if 'null cands)
   cands)
 
-(defun corfu-pixel-perfect--prepare-candidates (cands)
-  "Prepare completion candidates CANDS for alignment and truncation."
+(defun corfu-pixel-perfect--prepare-candidates (cands &optional do-not-format)
+  "Prepare completion candidates CANDS for alignment and truncation.
+
+`corfu-pixel-perfect-format-functions' are applied here unless
+`do-not-format' is non-nil."
   (let* ((cands (cl-loop for c in cands
                          collect (funcall corfu--hilit (substring c))))
          (cands (cdr (corfu--affixate cands)))
          (cands (corfu-pixel-perfect--trim cands))
-         (cands (corfu-pixel-perfect--apply-format-functions cands)))
+         (cands (if do-not-format cands
+                  (corfu-pixel-perfect--apply-format-functions cands))))
     cands))
 
 (defun corfu-pixel-perfect--truncate-string-to-pixel-width (str width)
@@ -833,7 +837,7 @@ which should be greater than 99.86% of the widths."
 Prepare CAND for alignment and truncation as usual, but
 optionally resolve the annotation from LSP servers if possible
 and necessary."
-  (let ((prepared (car (corfu-pixel-perfect--prepare-candidates (list cand)))))
+  (let ((prepared (car (corfu-pixel-perfect--prepare-candidates (list cand) t))))
     (when-let (((and (length= (caddr prepared) 0)
                      (or (not corfu-popupinfo-mode)
                          (not corfu-popupinfo--toggle))))
