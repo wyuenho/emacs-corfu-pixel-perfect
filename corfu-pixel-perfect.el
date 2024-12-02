@@ -88,6 +88,24 @@ the fringe when you use this option."
                  (const :tag "Proportional" proportional)
                  (const :tag "None" nil)))
 
+(defcustom corfu-pixel-perfect-alignment 'column
+  "How the elements of the popup should be aligned.
+
+The default value is `column', which treats the popup like a
+table where each element occupies a space defined by the longest
+element in the same column.
+
+If the value is `condensed', each line is only padded to fit the
+longest line. This is slower but is the recommended setting for
+languages where the ratio between the lengths of the completion
+string and annotation on each line varies greatly.
+
+In both cases, the annotation is right aligned, while the rest
+are left aligned."
+  :local t
+  :type '(choice (const :tag "Column-based" column)
+                 (const :tag "Condensed" condensed)))
+
 (defcustom corfu-pixel-perfect-format-functions nil
   "A list of functions to format candidates.
 
@@ -601,8 +619,8 @@ returns an empty string."
                       (setf (caddr x) ""))))))
   cands)
 
-(defun corfu-pixel-perfect--format-candidates (cands curr ml mr)
-  "Format annotated CANDS.
+(defun corfu-pixel-perfect--align-candidates (cands curr ml mr)
+  "Align candidates CANDS.
 CURR is index of the currently selected candidate.
 ML is the left margin padding in pixels on graphical displays or columns on the
 terminal.
@@ -632,6 +650,11 @@ terminal."
 
     (cl-loop for (cand prefix suffix) being the elements of cands
              using (index i)
+             do
+             (when (eq corfu-pixel-perfect-alignment 'condensed)
+               (setq pw (corfu-pixel-perfect--string-pixel-width prefix)
+                     cw (corfu-pixel-perfect--string-pixel-width cand)
+                     sw (corfu-pixel-perfect--string-pixel-width suffix)))
              ;; do not use relative space pixel params as they may lead to wrong
              ;; `string-pixel-width' results
              collect
@@ -932,7 +955,7 @@ and necessary."
             (min corfu-max-width (/ (corfu-pixel-perfect--guess-width) (float fw))))
            (cands (corfu-pixel-perfect--truncate-from-annotation-maybe cands))
            (cands (corfu-pixel-perfect--truncate-proportionally-maybe cands))
-           (lines (corfu-pixel-perfect--format-candidates cands curr ml mr)))
+           (lines (corfu-pixel-perfect--align-candidates cands curr ml mr)))
       (corfu--popup-show pos offset nil lines curr))))
 
 (cl-defmethod corfu--popup-show :around (pos off _ lines
@@ -1020,7 +1043,7 @@ its size has changed."
                    (corfu-min-width corfu-max-width)
                    (cands (corfu-pixel-perfect--truncate-from-annotation-maybe cands))
                    (cands (corfu-pixel-perfect--truncate-proportionally-maybe cands))
-                   (lines (corfu-pixel-perfect--format-candidates cands curr ml mr))
+                   (lines (corfu-pixel-perfect--align-candidates cands curr ml mr))
                    (`(,content-width . ,content-height)
                     (corfu-pixel-perfect--string-pixel-size (string-join lines "\n"))))
 
