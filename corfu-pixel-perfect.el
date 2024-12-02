@@ -477,15 +477,18 @@ FACE applied to the 3 strings."
 
 (defun corfu-pixel-perfect--trim (cands)
   "Trim white space in candidates CANDS."
-  (cl-loop for c in cands do
-           (cl-loop for s in-ref c do
-                    (setf s (string-clean-whitespace s)))
-           (when-let* ((suffix (caddr c))
-                       ((> (length suffix) 0)))
-             (setf (caddr c)
-                   (concat
-                    (apply 'propertize " " (text-properties-at 0 suffix))
-                    suffix))))
+  (cl-loop for cand in-ref cands do
+           (let ((suffix-props (text-properties-at 0 (caddr cand))))
+             ;; do not touch prefix as it often contains icons on spaces
+             (setf (car cand) (string-trim-right (car cand))
+                   (caddr cand) (string-clean-whitespace (caddr cand)))
+             (when (length> (caddr cand) 0)
+               (setf (caddr cand)
+                     (concat " " (caddr cand)))
+               ;; collapsed whitespace has no text properties, assuming every
+               ;; char in the suffix has the same properties, we reapply the
+               ;; properties to the entire string
+               (add-text-properties 0 (length (caddr cand)) suffix-props (caddr cand)))))
   cands)
 
 (defun corfu-pixel-perfect--apply-format-functions (cands)
