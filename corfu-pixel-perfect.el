@@ -357,6 +357,10 @@ See `completion-in-region' for the arguments BEG, END, TABLE, PRED."
   (add-hook 'completion-in-region-mode-hook #'corfu-pixel-perfect--teardown nil 'local)
   (when (and (boundp 'lsp-inhibit-lsp-hooks)
              (bound-and-true-p lsp-completion-mode))
+    (make-local-variable 'corfu-continue-commands)
+    (add-to-list 'corfu-continue-commands 'lsp-ui-doc--handle-mouse-movement)
+    (add-to-list 'corfu-continue-commands 'dap-tooltip-mouse-motion)
+    (add-to-list 'corfu-continue-commands 'ignore-preserving-kill-region)
     (setq-local lsp-inhibit-lsp-hooks t)))
 
 (defun corfu-pixel-perfect--teardown ()
@@ -364,6 +368,7 @@ See `completion-in-region' for the arguments BEG, END, TABLE, PRED."
   (unless completion-in-region-mode
     (when (and (boundp 'lsp-inhibit-lsp-hooks)
                (bound-and-true-p lsp-completion-mode))
+      (kill-local-variable 'corfu-continue-commands)
       (setq-local lsp-inhibit-lsp-hooks nil))
 
     (corfu-pixel-perfect--unwrap-functions
