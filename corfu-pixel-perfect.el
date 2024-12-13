@@ -854,7 +854,7 @@ and necessary."
     (car (corfu-pixel-perfect--apply-format-functions (list prepared)))))
 
 (defun corfu-pixel-perfect--get-prepared-candidates (cands)
-  "Prepare every all the candidates in CANDS."
+  "Prepare all the candidates in CANDS."
   (let* ((curr (- corfu--index corfu--scroll))
          (front (corfu-pixel-perfect--prepare-candidates (take curr cands)))
          (selected (corfu-pixel-perfect--prepare-current-candidate (nth curr cands)))
