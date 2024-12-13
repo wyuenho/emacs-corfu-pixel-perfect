@@ -819,22 +819,11 @@ which should be greater than 99.86% of the widths."
                            finally return (cons (/ M N) (/ S N)))))
       (ceiling (+ mean (* 3 stddev))))))
 
-(declare-function lsp:completion-item-detail? "ext:lsp-protocol")
-(declare-function lsp-completion-resolve "ext:lsp-completion")
-
-(defun corfu-pixel-perfect--resolve-completion-item-detail (cand)
+(defun corfu-pixel-perfect--candidate-signature (cand)
   "Get the annotation for candidate CAND from LSP servers."
-  (and (bound-and-true-p lsp-managed-mode)
-       (fboundp 'lsp:completion-item-detail?)
-       (fboundp 'lsp-completion-resolve)
-       (or (lsp:completion-item-detail?
-            (get-text-property 0 'lsp-completion-unresolved-item cand))
-           (let* ((lsp-completion-resolved-item (lsp-completion-resolve cand))
-                  (lsp-completion-resolved-item
-                   (if (stringp lsp-completion-resolved-item)
-                       (get-text-property 0 'lsp-completion-item lsp-completion-resolved-item)
-                     lsp-completion-resolved-item)))
-             (lsp:completion-item-detail? lsp-completion-resolved-item)))))
+  (when-let ((extras (nth 4 completion-in-region--data))
+             (fun (plist-get extras :company-docsig)))
+    (funcall fun cand)))
 
 (defun corfu-pixel-perfect--prepare-current-candidate (cand)
   "Prepare the current candidate CAND.
@@ -847,7 +836,7 @@ and necessary."
                      (or (not corfu-popupinfo-mode)
                          (not corfu-popupinfo--toggle))))
                (detail
-                (corfu-pixel-perfect--resolve-completion-item-detail cand)))
+                (corfu-pixel-perfect--candidate-signature cand)))
       (setf (caddr prepared)
             (propertize (concat " " (string-clean-whitespace (substring detail)))
                         'face 'corfu-annotations)))
