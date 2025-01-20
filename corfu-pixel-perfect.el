@@ -129,7 +129,7 @@ list in-place to encouraged."
   "Face used when hovering on a candidate with a mouse."
   :group 'corfu-pixel-perfect-faces)
 
-(define-fringe-bitmap 'corfu-pixel-perfect-scroll-bar [])
+(define-fringe-bitmap 'corfu-pixel-perfect-scroll-bar [0] 1 1)
 
 (defconst corfu-pixel-perfect--display-table
   (let ((dt (make-display-table)))
