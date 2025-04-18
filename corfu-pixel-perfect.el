@@ -520,8 +520,7 @@ FACE applied to the 3 strings."
     (cl-loop for f in corfu-pixel-perfect-format-functions
              do (cl-loop for c in cands
                          do (setf c (funcall f c corfu--metadata)))))
-  (cl-delete-if 'null cands)
-  cands)
+  (cl-delete-if 'null cands))
 
 (defun corfu-pixel-perfect--prepare-candidates (cands &optional do-not-format)
   "Prepare completion candidates CANDS for alignment and truncation.
@@ -1127,8 +1126,8 @@ target is the buffer in it."
         (advice-add #'corfu--hide-frame-deferred :after #'corfu-pixel-perfect--hide-frame-deferred))
     (when-let ((buf (get-buffer corfu-pixel-perfect--buffer-name)))
       (kill-buffer buf))
-    (cl-delete 'mwheel-scroll corfu-continue-commands)
-    (cl-delete 'handle-switch-frame corfu-continue-commands)
+    (setq corfu-continue-commands (cl-delete 'mwheel-scroll corfu-continue-commands))
+    (setq corfu-continue-commands (cl-delete 'handle-switch-frame corfu-continue-commands))
     (setq corfu--frame-parameters corfu-pixel-perfect--corfu--frame-parameters)
     (advice-remove #'corfu--make-frame #'corfu-pixel-perfect--make-frame)
     (advice-remove #'corfu--candidates-popup #'corfu-pixel-perfect--candidates-popup)
