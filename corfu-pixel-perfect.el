@@ -768,7 +768,8 @@ HEIGHT is the height of the popup frame's text area."
                (border (alist-get 'internal-border-width corfu--frame-parameters))
                (x (max 0 (min (+ left-edge (- (or pos-x 0) off border))
                               (- (frame-native-width parent-frame) width))))
-               (yb (+ top-edge (window-tab-line-height) (or pos-y 0) lh))
+               (yb (+ top-edge (or pos-y 0) lh
+                      (static-if (< emacs-major-version 30) (window-tab-line-height) 0)))
                (y (if (> (+ yb (* corfu-count ch) lh lh) (frame-native-height parent-frame))
                       (- yb height lh border border)
                     yb)))
