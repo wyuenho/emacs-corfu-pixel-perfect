@@ -822,8 +822,7 @@ which should be greater than 99.86% of the widths."
 
 (defun corfu-pixel-perfect--candidate-signature (cand)
   "Get the annotation for candidate CAND from LSP servers."
-  (when-let ((extras (nth 4 completion-in-region--data))
-             (fun (plist-get extras :company-docsig)))
+  (when-let ((fun (corfu--metadata-get :company-docsig)))
     (funcall fun cand)))
 
 (defun corfu-pixel-perfect--prepare-current-candidate (cand)
