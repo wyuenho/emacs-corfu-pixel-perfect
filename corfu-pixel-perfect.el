@@ -346,7 +346,7 @@ See `completion-in-region' for the arguments BEG, END, TABLE, PRED."
             (when corfu-popupinfo-map
               (cons corfu-popupinfo-map (current-active-maps))))))
 
-  (completion-in-region-mode)
+  (completion-in-region-mode 1)
   (activate-change-group (setq corfu--change-group (prepare-change-group)))
   (setcdr (assq #'completion-in-region-mode minor-mode-overriding-map-alist) corfu-map)
   (add-hook 'pre-command-hook #'corfu--prepare nil 'local)
