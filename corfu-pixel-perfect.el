@@ -849,7 +849,11 @@ and necessary."
          (front (corfu-pixel-perfect--prepare-candidates (take curr cands)))
          (selected (corfu-pixel-perfect--prepare-current-candidate (nth curr cands)))
          (back (corfu-pixel-perfect--prepare-candidates (nthcdr (1+ curr) cands))))
-    (nconc front (cons selected back))))
+    (if (eql corfu--index -1)
+        ;; back is just (nthcdr 0 cands), which is the whole list, this check is
+        ;; needed because `nth' returns the car whether the index is 0 or -1
+        back
+      (nconc front (cons selected back)))))
 
 (defun corfu-pixel-perfect-insert-segment ()
   "Insert segment."
