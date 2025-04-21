@@ -530,7 +530,8 @@ FACE applied to the 3 strings."
   (let* ((cands (cl-loop for c in cands
                          collect
                          (funcall corfu--hilit
-                                  (or (get-text-property 0 'completion--unquoted c) c))))
+                                  (substring
+                                   (or (get-text-property 0 'completion--unquoted c) c)))))
          (cands (cdr (corfu--affixate cands)))
          (cands (corfu-pixel-perfect--trim cands))
          (cands (if do-not-format cands
