@@ -764,9 +764,10 @@ HEIGHT is the height of the popup frame's text area."
   (pcase-let* ((lh (with-current-buffer (window-buffer (get-mru-window parent-frame))
                      (default-line-height)))
                (ch (default-line-height))
+               (graphic (display-graphic-p))
                (`(,pos-x . ,pos-y) (posn-x-y pos))
                (`(,left-edge ,top-edge) (window-body-pixel-edges))
-               (border (alist-get 'internal-border-width corfu--frame-parameters))
+               (border (if graphic corfu-border-width 0))
                (x (max 0 (min (+ left-edge (- (or pos-x 0) off border))
                               (- (frame-native-width parent-frame) width))))
                (yb (+ top-edge (or pos-y 0) lh
@@ -910,7 +911,8 @@ and necessary."
                              (mr (max 0 (ceiling (* fw corfu-right-margin-width))))
                              (marginl (propertize " " 'display `(space :width (,ml))))
                              (marginr (propertize " " 'display `(space :width (,mr))))
-                             (border (alist-get 'internal-border-width corfu--frame-parameters))
+                             (graphic (display-graphic-p))
+                             (border (if graphic corfu-border-width 0))
                              (mode-line-width (- (frame-native-width) ml mr border border))
                              (str-widths
                               (cl-loop for seg in corfu-pixel-perfect-status-bar-segments
@@ -1092,7 +1094,8 @@ If FRAME-OR-WINDOW is a frame, the buffer of its root window is
 the target, otherwise FRAME-OR-WINDOW must be a window and the
 target is the buffer in it."
   (let ((frame (cond ((framep frame-or-window) frame-or-window)
-                     ((windowp frame-or-window) (window-frame frame-or-window)))))
+                     ((windowp frame-or-window) (window-frame frame-or-window))))
+        (graphic (display-graphic-p)))
     (when (and corfu-popupinfo-mode
                (frame-live-p frame)
                (frame-live-p corfu-popupinfo--frame)
@@ -1100,7 +1103,7 @@ target is the buffer in it."
                (frame-size-changed-p frame))
       (pcase-let* ((`(,x . ,y) (frame-position frame))
                    (width (frame-native-width frame))
-                   (border (alist-get 'internal-border-width corfu--frame-parameters)))
+                   (border (if graphic corfu-border-width 0)))
         (with-selected-frame corfu-popupinfo--frame
           (set-frame-position corfu-popupinfo--frame (+ x width (- border)) y))))))
 
