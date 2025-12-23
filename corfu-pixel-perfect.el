@@ -761,8 +761,8 @@ OFF the is number of pixels on graphical displays or columns in the terminal to
 offset the top left position of the popup.
 WIDTH is the width of the popup frame's text area.
 HEIGHT is the height of the popup frame's text area."
-  (pcase-let* ((lh (with-current-buffer (window-buffer (get-mru-window parent-frame))
-                     (default-line-height)))
+  (pcase-let* ((lh (max (default-line-height)
+                        (cdr (posn-object-width-height pos))))
                (ch (default-line-height))
                (graphic (display-graphic-p))
                (`(,pos-x . ,pos-y) (posn-x-y pos))
